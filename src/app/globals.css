@@ -1,0 +1,21 @@
+@import "leaflet/dist/leaflet.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply min-h-screen bg-[#f5f6ff] text-[#151a32] font-sans;
+  background-image:
+    radial-gradient(circle at top left, rgba(92, 124, 250, 0.18), transparent 45%),
+    radial-gradient(circle at 80% 20%, rgba(93, 212, 255, 0.2), transparent 42%),
+    radial-gradient(circle at 20% 80%, rgba(168, 85, 247, 0.15), transparent 50%),
+    linear-gradient(180deg, #fdfdff 0%, #eef2ff 60%, #e4e9ff 100%);
+}
+
+.gradient-bg {
+  background: transparent;
+}

@@ -1,0 +1,15 @@
+<svg width="220" height="60" viewBox="0 0 220 60" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="RangeRates logo">
+  <defs>
+    <linearGradient id="rrGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5dd4ff" />
+      <stop offset="50%" stop-color="#5c7cfa" />
+      <stop offset="100%" stop-color="#a855f7" />
+    </linearGradient>
+  </defs>
+  <rect x="0.5" y="0.5" width="219" height="59" rx="18" fill="rgba(18, 26, 45, 0.92)" stroke="rgba(92, 124, 250, 0.45)" />
+  <path d="M32 16c-9 0-16 7-16 16s7 16 16 16c5.54 0 10.4-2.83 13.38-7.12l-6.4-3.7A7.99 7.99 0 0 1 32 40a8 8 0 1 1 6.9-12.22l6.43-3.72C42.64 19.3 37.76 16 32 16z" fill="url(#rrGradient)"/>
+  <path d="M46 31h14" stroke="#5dd4ff" stroke-width="3" stroke-linecap="round"/>
+  <path d="M46 39h10" stroke="#a855f7" stroke-width="3" stroke-linecap="round"/>
+  <text x="72" y="37" fill="#f4f7ff" font-family="'Inter', 'Segoe UI', sans-serif" font-size="24" font-weight="700">RangeRates</text>
+  <text x="74" y="50" fill="#96a3d4" font-family="'Inter', 'Segoe UI', sans-serif" font-size="12" font-weight="500">delivery distance intelligence</text>
+</svg>
