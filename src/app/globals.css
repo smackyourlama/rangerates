@@ -7,15 +7,45 @@
   color-scheme: light;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
-  @apply min-h-screen bg-[#f5f6ff] text-[#151a32] font-sans;
+  @apply min-h-screen bg-[#eff3ff] font-sans text-[#151a32];
   background-image:
-    radial-gradient(circle at top left, rgba(92, 124, 250, 0.18), transparent 45%),
-    radial-gradient(circle at 80% 20%, rgba(93, 212, 255, 0.2), transparent 42%),
-    radial-gradient(circle at 20% 80%, rgba(168, 85, 247, 0.15), transparent 50%),
-    linear-gradient(180deg, #fdfdff 0%, #eef2ff 60%, #e4e9ff 100%);
+    radial-gradient(circle at top left, rgba(92, 124, 250, 0.18), transparent 42%),
+    radial-gradient(circle at 85% 10%, rgba(93, 212, 255, 0.16), transparent 36%),
+    radial-gradient(circle at 20% 85%, rgba(168, 85, 247, 0.14), transparent 40%),
+    linear-gradient(180deg, #fdfdff 0%, #eff3ff 56%, #e7ecff 100%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: rgba(92, 124, 250, 0.22);
 }
 
 .gradient-bg {
   background: transparent;
+}
+
+@layer components {
+  .shadow-soft {
+    box-shadow: 0 22px 60px rgba(21, 26, 50, 0.08);
+  }
+
+  .input-base {
+    @apply w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/15;
+  }
+
+  .button-primary {
+    @apply inline-flex items-center justify-center rounded-full bg-brand-primary px-5 py-3 text-sm font-semibold text-white transition hover:brightness-110;
+  }
+
+  .button-secondary {
+    @apply inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50;
+  }
 }

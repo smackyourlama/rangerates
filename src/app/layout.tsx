@@ -1,18 +1,19 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import "./globals.css";
-import { ReactNode } from "react";
+import { AppProvider } from "@/components/app-provider";
 
 export const metadata: Metadata = {
-  title: "RangeRates | Delivery Distance Intelligence",
+  title: "RangeRates | Dispatch quote workspace",
   description:
-    "RangeRates produces instant, shareable delivery quotes for Tecumseh-based Mac Services routes."
+    "RangeRates turns a one-off distance calculator into a real dispatch workflow with login, customer records, saved quotes, and operator dashboards.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
-      <body className="antialiased">
-        {children}
+    <html lang="en" suppressHydrationWarning>
+      <body className="antialiased" suppressHydrationWarning>
+        <AppProvider>{children}</AppProvider>
       </body>
     </html>
   );

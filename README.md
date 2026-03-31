@@ -1,102 +1,101 @@
-# RangeRates Delivery Distance Calculator
+# RangeRates Dispatch Workspace
 
-A RangeRates-branded Next.js 14 application that produces instant delivery fee quotes for Mac Services dispatch. The tool geocodes the destination, calculates the driving distance from **401 S Evans St, Tecumseh, MI 49286**, matches it to a transparent pricing tier, and outputs a copy-friendly summary you can send to customers.
+RangeRates is now a full Next.js 14 dispatch webapp instead of a one-screen calculator.
 
-## Highlights
+It still uses the live OpenStreetMap + OSRM quote engine, but now the product flow includes:
 
-- ✅ **RangeRates UI** with custom logo, light theme, and dispatcher-focused copy
-- ✅ **OpenStreetMap + OSRM** pipeline with automatic straight-line fallback
-- ✅ **Pricing tiers in one file** (`src/lib/pricing.ts`) for quick edits
-- ✅ **Leaflet route preview** so ops can sanity-check relative distance
-- ✅ **Share-ready summary string** for SMS/email replies
-- ✅ **No paid API keys** – everything uses open data
+- working login + signup
+- protected dashboard
+- saved quote history
+- quote detail pages with status + notes
+- customer list + customer detail pages
+- route preview + copy-ready summaries
+- clear empty states and real next-action links
 
-## Getting Started
+## What changed
 
-### 1. Install dependencies
+The app was rebuilt around the local website template principles:
+
+- no dead-end landing page
+- no fake billing copy
+- logged-in workflow from the first version
+- list / detail / create flow for the main records
+- every empty state points to a real next action
+
+## Auth + storage model
+
+This version uses **browser localStorage** for auth and app data so the full website works immediately on Vercel with zero backend setup.
+
+That means:
+
+- accounts are stored per browser/device
+- quotes/customers persist in that browser until cleared
+- the app structure is now ready for a future swap to Supabase/Postgres if multi-device sync is needed
+
+## Core workflow
+
+1. Create an account or log in
+2. Open the dashboard
+3. Create a quote from `/dashboard/quotes/new`
+4. Save the quote to history
+5. Open quote detail to update status, urgency, notes, and copy the summary
+6. Create or open customer records to keep quote history attached to real accounts
+
+## Quote engine
+
+The calculator still uses the original live route logic:
+
+1. Geocode the destination + origin with OpenStreetMap Nominatim
+2. Request OSRM driving distance
+3. Fall back to straight-line distance if routing fails
+4. Match the result against `src/lib/pricing.ts`
+
+Origin is configured in:
+
+- `src/lib/config.ts`
+
+Pricing tiers are configured in:
+
+- `src/lib/pricing.ts`
+
+## Main routes
+
+- `/` — public landing page aligned with the real app
+- `/login` — login
+- `/signup` — signup
+- `/dashboard` — ops dashboard
+- `/dashboard/quotes` — quote list
+- `/dashboard/quotes/new` — new quote flow
+- `/dashboard/quotes/[quoteId]` — quote detail
+- `/dashboard/customers` — customer list
+- `/dashboard/customers/new` — create customer
+- `/dashboard/customers/[customerId]` — customer detail
+- `/dashboard/profile` — workspace profile
+
+## Local development
 
 ```bash
-pnpm install
-# or
 npm install
-# or
-yarn install
+npm run dev
 ```
 
-### 2. (Optional) Add OpenStreetMap contact info
+Optional OpenStreetMap contact string:
 
 ```bash
 cp .env.example .env.local
 ```
 
-```
+```env
 OSM_CONTACT=dispatch@example.com
 ```
 
-Nominatim appreciates a contact string. The app still functions without it; the User-Agent simply defaults to a generic notice.
-
-### 3. Run locally
+## Build
 
 ```bash
-pnpm dev
+npm run build
+npm run start
 ```
 
-Visit `http://localhost:3000`, enter a destination (e.g., `100 N Main St, Adrian, MI`), and RangeRates will return the distance, tier, fee, and shareable note.
+## Notes
 
-### 4. Build & deploy
-
-```bash
-pnpm build
-pnpm start
-```
-
-Deploy to any Node host or export static assets for GitHub Pages/Vercel edge.
-
-## Folder Structure
-
-```
-rangerates-distance-calculator/
-├── public/
-│   └── rangerates-logo.svg
-├── src/
-│   ├── app/
-│   │   ├── api/calculate/route.ts   # Delivery quote API
-│   │   ├── globals.css             # Tailwind + theme styles
-│   │   └── page.tsx                # RangeRates UI
-│   ├── components/
-│   │   └── map-preview.tsx         # Leaflet route preview
-│   ├── lib/
-│   │   ├── config.ts               # Origin + constants
-│   │   ├── distance.ts             # Geocode + routing glue
-│   │   └── pricing.ts              # Tier definitions
-│   └── types/delivery.ts           # Shared types
-├── tailwind.config.ts
-├── next.config.mjs
-├── package.json
-└── README.md
-```
-
-## Customizing
-
-- **Origin address** – edit `ORIGIN_ADDRESS` inside `src/lib/config.ts`.
-- **Pricing tiers** – adjust `PRICING_TIERS` inside `src/lib/pricing.ts`.
-- **Brand styling** – edit `tailwind.config.ts` (color tokens) + `globals.css`.
-- **Map tiles** – update `TILE_URL` inside `src/components/map-preview.tsx`.
-
-## API Behavior
-
-1. Geocode the destination + Tecumseh origin with OpenStreetMap Nominatim.
-2. Request OSRM driving distance.
-3. If the router fails, compute a haversine (straight-line) fallback.
-4. Match the distance against the tier table and respond with a structured payload.
-
-## Deployment Checklist
-
-1. (Optional) set `OSM_CONTACT` in the environment.
-2. `pnpm build` → ensure the build succeeds.
-3. `pnpm start` on production or export static assets (`next export`).
-4. Monitor usage to stay courteous with OpenStreetMap limits.
-
----
-
-RangeRates keeps delivery pricing consistent, fast, and transparent for every Mac Services route.
+If you want the next pass to move from browser-local auth/storage to a real backend, the UI flow is already in place and the storage layer can be replaced without redoing the product structure.
