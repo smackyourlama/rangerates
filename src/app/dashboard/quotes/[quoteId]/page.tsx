@@ -42,7 +42,7 @@ export default function QuoteDetailPage() {
   return (
     <DashboardShell
       title="Quote detail"
-      subtitle="Edit status, route metadata, and notes from one place without losing the original calculation."
+      subtitle="Edit status, route metadata, appointment details, and notes from one place."
       actions={
         <>
           <Link href="/dashboard/quotes" className="button-secondary">
@@ -94,15 +94,11 @@ export default function QuoteDetailPage() {
                 </div>
               </Panel>
 
-              <Panel title="Edit workflow state" description="Change status, urgency, and notes without leaving the quote page.">
+              <Panel title="Edit workflow state" description="Change status, urgency, client contact info, and notes without leaving the quote page.">
                 <div className="grid gap-4 md:grid-cols-2">
                   <label className="block text-sm font-medium text-slate-700">
                     Status
-                    <select
-                      value={quote.status}
-                      onChange={(event) => updateQuote(quote.id, { status: event.target.value as typeof quote.status })}
-                      className="input-base mt-2"
-                    >
+                    <select value={quote.status} onChange={(event) => updateQuote(quote.id, { status: event.target.value as typeof quote.status })} className="input-base mt-2">
                       <option value="draft">Draft</option>
                       <option value="sent">Sent</option>
                       <option value="approved">Approved</option>
@@ -112,38 +108,36 @@ export default function QuoteDetailPage() {
                   </label>
                   <label className="block text-sm font-medium text-slate-700">
                     Urgency
-                    <select
-                      value={quote.urgency}
-                      onChange={(event) => updateQuote(quote.id, { urgency: event.target.value as typeof quote.urgency })}
-                      className="input-base mt-2"
-                    >
+                    <select value={quote.urgency} onChange={(event) => updateQuote(quote.id, { urgency: event.target.value as typeof quote.urgency })} className="input-base mt-2">
                       <option value="same-day">Same day</option>
                       <option value="today">Today</option>
                       <option value="next-day">Next day</option>
                       <option value="flex">Flexible</option>
                     </select>
                   </label>
-                  <label className="block text-sm font-medium text-slate-700 md:col-span-2">
+                  <label className="block text-sm font-medium text-slate-700">
+                    Client phone number
+                    <input value={quote.clientPhone} onChange={(event) => updateQuote(quote.id, { clientPhone: event.target.value })} className="input-base mt-2" placeholder="" />
+                  </label>
+                  <label className="block text-sm font-medium text-slate-700">
                     Route type
-                    <select
-                      value={quote.routeType}
-                      onChange={(event) => updateQuote(quote.id, { routeType: event.target.value as typeof quote.routeType })}
-                      className="input-base mt-2"
-                    >
+                    <select value={quote.routeType} onChange={(event) => updateQuote(quote.id, { routeType: event.target.value as typeof quote.routeType })} className="input-base mt-2">
                       <option value="delivery">Delivery</option>
                       <option value="pickup">Pickup</option>
                       <option value="after-hours">After-hours</option>
                     </select>
                   </label>
+                  <label className="block text-sm font-medium text-slate-700">
+                    Appointment date
+                    <input value={quote.appointmentDate} onChange={(event) => updateQuote(quote.id, { appointmentDate: event.target.value })} type="date" className="input-base mt-2" />
+                  </label>
+                  <label className="block text-sm font-medium text-slate-700">
+                    Appointment time
+                    <input value={quote.appointmentTime} onChange={(event) => updateQuote(quote.id, { appointmentTime: event.target.value })} type="time" className="input-base mt-2" />
+                  </label>
                   <label className="block text-sm font-medium text-slate-700 md:col-span-2">
                     Notes
-                    <textarea
-                      value={quote.notes}
-                      onChange={(event) => updateQuote(quote.id, { notes: event.target.value })}
-                      rows={5}
-                      className="input-base mt-2 min-h-[140px] resize-y"
-                      placeholder="Dispatcher follow-up, access details, or schedule note"
-                    />
+                    <textarea value={quote.notes} onChange={(event) => updateQuote(quote.id, { notes: event.target.value })} rows={5} className="input-base mt-2 min-h-[140px] resize-y" placeholder="" />
                   </label>
                 </div>
               </Panel>
@@ -164,6 +158,10 @@ export default function QuoteDetailPage() {
 
               <Panel title="What to do next" description="No dead end after you save the quote.">
                 <div className="space-y-3">
+                  <Link href="/dashboard/messages" className="block rounded-2xl border border-slate-100 bg-white p-4 transition hover:bg-brand-primary/5">
+                    <div className="text-sm text-slate-500">Messages</div>
+                    <div className="mt-1 font-semibold text-brand-ink">Open message logs and review outbound texts</div>
+                  </Link>
                   <Link href="/dashboard/quotes" className="block rounded-2xl border border-slate-100 bg-white p-4 transition hover:bg-brand-primary/5">
                     <div className="text-sm text-slate-500">Quote list</div>
                     <div className="mt-1 font-semibold text-brand-ink">Return to the filtered quote list</div>
@@ -171,7 +169,7 @@ export default function QuoteDetailPage() {
                   {relatedCustomer ? (
                     <Link href={`/dashboard/customers/${relatedCustomer.id}`} className="block rounded-2xl border border-slate-100 bg-white p-4 transition hover:bg-brand-primary/5">
                       <div className="text-sm text-slate-500">Customer record</div>
-                      <div className="mt-1 font-semibold text-brand-ink">Open {relatedCustomer.name} and review related history</div>
+                      <div className="mt-1 font-semibold text-brand-ink">Open {relatedCustomer.name} and message them from their record</div>
                     </Link>
                   ) : (
                     <Link href="/dashboard/customers/new" className="block rounded-2xl border border-slate-100 bg-white p-4 transition hover:bg-brand-primary/5">
@@ -179,10 +177,6 @@ export default function QuoteDetailPage() {
                       <div className="mt-1 font-semibold text-brand-ink">Create a customer record for this quote</div>
                     </Link>
                   )}
-                  <Link href="/dashboard/quotes/new" className="block rounded-2xl border border-slate-100 bg-white p-4 transition hover:bg-brand-primary/5">
-                    <div className="text-sm text-slate-500">Next job</div>
-                    <div className="mt-1 font-semibold text-brand-ink">Start another quote without leaving the workflow</div>
-                  </Link>
                 </div>
               </Panel>
 

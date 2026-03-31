@@ -13,7 +13,7 @@ const buildUserAgent = () => {
 };
 
 const REQUEST_HEADERS = {
-  "User-Agent": buildUserAgent()
+  "User-Agent": buildUserAgent(),
 };
 
 async function geocodeAddress(address: string): Promise<GeocodeResult> {
@@ -24,7 +24,7 @@ async function geocodeAddress(address: string): Promise<GeocodeResult> {
 
   const response = await fetch(url, {
     cache: "no-store",
-    headers: REQUEST_HEADERS
+    headers: REQUEST_HEADERS,
   });
 
   if (!response.ok) {
@@ -47,27 +47,23 @@ async function geocodeAddress(address: string): Promise<GeocodeResult> {
 
   return {
     coordinates: [lon, lat],
-    name: feature.display_name ?? address
+    name: feature.display_name ?? address,
   };
 }
 
 function haversineMiles([lon1, lat1]: CoordinatePair, [lon2, lat2]: CoordinatePair) {
   const toRad = (value: number) => (value * Math.PI) / 180;
-  const R = 3958.8; // miles
+  const r = 3958.8;
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
+  return r * c;
 }
 
-async function fetchDrivingDistance(
-  origin: CoordinatePair,
-  destination: CoordinatePair
-): Promise<number | null> {
+async function fetchDrivingDistance(origin: CoordinatePair, destination: CoordinatePair): Promise<number | null> {
   const coords = `${origin[0]},${origin[1]};${destination[0]},${destination[1]}`;
   const url = new URL(`${OSRM_BASE}/route/v1/driving/${coords}`);
   url.searchParams.set("overview", "false");
@@ -89,10 +85,12 @@ async function fetchDrivingDistance(
 
 const cloneCoordinates = (coords: CoordinatePair): CoordinatePair => [coords[0], coords[1]];
 
-export async function buildDeliveryQuote(destinationAddress: string): Promise<DeliveryQuote> {
+export async function buildDeliveryQuote(destinationAddress: string, originAddress?: string): Promise<DeliveryQuote> {
+  const resolvedOriginAddress = originAddress?.trim() || ORIGIN_ADDRESS;
+
   const [origin, destination] = await Promise.all([
-    geocodeAddress(ORIGIN_ADDRESS),
-    geocodeAddress(destinationAddress)
+    geocodeAddress(resolvedOriginAddress),
+    geocodeAddress(destinationAddress),
   ]);
 
   let distanceMiles = await fetchDrivingDistance(origin.coordinates, destination.coordinates);
@@ -111,7 +109,8 @@ export async function buildDeliveryQuote(destinationAddress: string): Promise<De
     price: tier.price,
     tierLabel: tier.label,
     distanceSource,
+    originAddress: resolvedOriginAddress,
     originCoordinates: cloneCoordinates(origin.coordinates),
-    destinationCoordinates: cloneCoordinates(destination.coordinates)
+    destinationCoordinates: cloneCoordinates(destination.coordinates),
   };
 }

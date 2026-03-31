@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { DashboardShell, Panel } from "@/components/app-shell";
 import { RequireAuth } from "@/components/auth-guard";
 import { useApp } from "@/components/app-provider";
@@ -20,10 +20,13 @@ const MapPreview = dynamic(() => import("@/components/map-preview").then((mod) =
 
 export default function NewQuotePage() {
   const router = useRouter();
-  const { customers, addQuote } = useApp();
+  const { customers, addQuote, settings } = useApp();
   const [address, setAddress] = useState("");
   const [customerId, setCustomerId] = useState<string>("");
   const [customerLabel, setCustomerLabel] = useState("");
+  const [clientPhone, setClientPhone] = useState("");
+  const [appointmentDate, setAppointmentDate] = useState("");
+  const [appointmentTime, setAppointmentTime] = useState("");
   const [routeType, setRouteType] = useState<"delivery" | "pickup" | "after-hours">("delivery");
   const [urgency, setUrgency] = useState<"same-day" | "today" | "next-day" | "flex">("today");
   const [notes, setNotes] = useState("");
@@ -36,6 +39,15 @@ export default function NewQuotePage() {
     () => customers.find((customer) => customer.id === customerId) ?? null,
     [customerId, customers],
   );
+
+  useEffect(() => {
+    if (selectedCustomer) {
+      setCustomerLabel(selectedCustomer.name);
+      if (!clientPhone) {
+        setClientPhone(selectedCustomer.phone || "");
+      }
+    }
+  }, [clientPhone, selectedCustomer]);
 
   const summary = useMemo(() => {
     if (!quote) return "";
@@ -57,7 +69,10 @@ export default function NewQuotePage() {
       const response = await fetch("/api/calculate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address }),
+        body: JSON.stringify({
+          address,
+          originAddress: settings?.baseLocation || undefined,
+        }),
       });
 
       const payload = await response.json();
@@ -90,6 +105,9 @@ export default function NewQuotePage() {
       ...quote,
       customerId: selectedCustomer?.id ?? null,
       customerLabel: selectedCustomer?.name || customerLabel.trim() || "Walk-in customer",
+      clientPhone,
+      appointmentDate,
+      appointmentTime,
       routeType,
       urgency,
       notes,
@@ -102,7 +120,7 @@ export default function NewQuotePage() {
   return (
     <DashboardShell
       title="Create quote"
-      subtitle="Calculate the route, preview the map, then save the quote into the history flow instead of losing it after one reply."
+      subtitle="Calculate the route, preview the map, save the quote, and keep enough contact detail to message the client later."
     >
       <RequireAuth next="/dashboard/quotes/new">
         <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
@@ -123,25 +141,30 @@ export default function NewQuotePage() {
               {!selectedCustomer ? (
                 <label className="block text-sm font-medium text-slate-700">
                   Customer label
-                  <input
-                    value={customerLabel}
-                    onChange={(event) => setCustomerLabel(event.target.value)}
-                    placeholder="Mac Services customer"
-                    className="input-base mt-2"
-                  />
+                  <input value={customerLabel} onChange={(event) => setCustomerLabel(event.target.value)} placeholder="" className="input-base mt-2" />
                 </label>
               ) : null}
 
               <label className="block text-sm font-medium text-slate-700">
-                Destination address
-                <input
-                  value={address}
-                  onChange={(event) => setAddress(event.target.value)}
-                  placeholder="100 N Main St, Adrian, MI"
-                  className="input-base mt-2"
-                  required
-                />
+                Client phone number
+                <input value={clientPhone} onChange={(event) => setClientPhone(event.target.value)} placeholder="" className="input-base mt-2" />
               </label>
+
+              <label className="block text-sm font-medium text-slate-700">
+                Destination address
+                <input value={address} onChange={(event) => setAddress(event.target.value)} placeholder="" className="input-base mt-2" required />
+              </label>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="block text-sm font-medium text-slate-700">
+                  Appointment date
+                  <input value={appointmentDate} onChange={(event) => setAppointmentDate(event.target.value)} type="date" className="input-base mt-2" />
+                </label>
+                <label className="block text-sm font-medium text-slate-700">
+                  Appointment time
+                  <input value={appointmentTime} onChange={(event) => setAppointmentTime(event.target.value)} type="time" className="input-base mt-2" />
+                </label>
+              </div>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="block text-sm font-medium text-slate-700">
@@ -165,13 +188,7 @@ export default function NewQuotePage() {
 
               <label className="block text-sm font-medium text-slate-700">
                 Dispatch notes
-                <textarea
-                  value={notes}
-                  onChange={(event) => setNotes(event.target.value)}
-                  rows={4}
-                  placeholder="Gate code, unit number, after-hours note, or follow-up context"
-                  className="input-base mt-2 min-h-[120px] resize-y"
-                />
+                <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={4} placeholder="" className="input-base mt-2 min-h-[120px] resize-y" />
               </label>
 
               {error ? <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">{error}</div> : null}
@@ -191,6 +208,10 @@ export default function NewQuotePage() {
             {quote ? (
               <div className="space-y-5">
                 <div className="grid gap-3 rounded-2xl border border-slate-100 bg-white p-5 text-sm text-slate-600">
+                  <div className="flex items-center justify-between gap-3">
+                    <span>Origin</span>
+                    <span className="text-right font-semibold text-brand-ink">{quote.originAddress}</span>
+                  </div>
                   <div className="flex items-center justify-between gap-3">
                     <span>Destination</span>
                     <span className="text-right font-semibold text-brand-ink">{quote.destinationAddress}</span>
@@ -227,7 +248,7 @@ export default function NewQuotePage() {
             ) : (
               <div className="rounded-3xl border border-dashed border-brand-primary/30 bg-brand-primary/5 p-8 text-center">
                 <div className="text-lg font-semibold text-brand-ink">Nothing calculated yet</div>
-                <p className="mt-3 text-sm leading-7 text-slate-600">Run the address through the calculator, then save the quote so it lands in your history, dashboard, and customer flow.</p>
+                <p className="mt-3 text-sm leading-7 text-slate-600">Run the address through the calculator, then save the quote so it lands in your history, dashboard, customer flow, and message tools.</p>
               </div>
             )}
           </Panel>

@@ -1,11 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import Script from "next/script";
 import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "@/components/app-provider";
 import { Logo, SiteFrame } from "@/components/app-shell";
 import type { WorkspaceRole } from "@/lib/workspace";
+
+declare global {
+  interface Window {
+    google?: any;
+  }
+}
 
 const roleOptions: { value: WorkspaceRole; label: string }[] = [
   { value: "dispatch", label: "Dispatch lead" },
@@ -13,6 +20,18 @@ const roleOptions: { value: WorkspaceRole; label: string }[] = [
   { value: "coordinator", label: "Service coordinator" },
   { value: "operations", label: "Operations manager" },
 ];
+
+function decodeJwt(token: string): { email?: string; name?: string; sub?: string } {
+  const [, payload] = token.split(".");
+  if (!payload) return {};
+  try {
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const json = typeof window !== "undefined" ? window.atob(normalized) : "";
+    return JSON.parse(json);
+  } catch {
+    return {};
+  }
+}
 
 export function AuthCard({
   mode,
@@ -23,7 +42,7 @@ export function AuthCard({
 }) {
   const router = useRouter();
   const resolvedNextPath = nextPath || "/dashboard";
-  const { ready, currentUser, signUp, login } = useApp();
+  const { ready, currentUser, signUp, login, loginWithGoogle } = useApp();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fullName, setFullName] = useState("");
@@ -31,12 +50,47 @@ export function AuthCard({
   const [role, setRole] = useState<WorkspaceRole>("dispatch");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const googleButtonRef = useRef<HTMLDivElement | null>(null);
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim();
 
   useEffect(() => {
     if (ready && currentUser) {
       router.replace(resolvedNextPath);
     }
   }, [currentUser, ready, resolvedNextPath, router]);
+
+  useEffect(() => {
+    if (!googleClientId || !googleButtonRef.current || !window.google?.accounts?.id) {
+      return;
+    }
+
+    window.google.accounts.id.initialize({
+      client_id: googleClientId,
+      callback: (response: { credential?: string }) => {
+        const payload = response.credential ? decodeJwt(response.credential) : {};
+        if (!payload.email || !payload.sub) {
+          setError("Google sign-in did not return a usable profile.");
+          return;
+        }
+        loginWithGoogle({
+          email: payload.email,
+          fullName: payload.name || "Google user",
+          googleSubject: payload.sub,
+        });
+        router.push(resolvedNextPath);
+      },
+    });
+
+    googleButtonRef.current.innerHTML = "";
+    window.google.accounts.id.renderButton(googleButtonRef.current, {
+      theme: "outline",
+      size: "large",
+      type: "standard",
+      text: mode === "signup" ? "signup_with" : "signin_with",
+      shape: "pill",
+      width: 320,
+    });
+  }, [googleClientId, loginWithGoogle, mode, resolvedNextPath, router]);
 
   const copy = useMemo(() => {
     if (mode === "signup") {
@@ -80,6 +134,7 @@ export function AuthCard({
 
   return (
     <SiteFrame>
+      {googleClientId ? <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" /> : null}
       <div className="mx-auto flex min-h-[calc(100vh-81px)] max-w-6xl items-center px-4 py-10 md:px-8">
         <div className="grid w-full gap-8 lg:grid-cols-[0.9fr_1.1fr]">
           <section className="rounded-3xl border border-white/70 bg-brand-primary p-8 text-white shadow-soft">
@@ -104,7 +159,7 @@ export function AuthCard({
             <div>
               <div className="text-xs font-semibold uppercase tracking-[0.38em] text-brand-muted">Workspace access</div>
               <h2 className="mt-3 text-3xl font-semibold text-brand-ink">{copy.title}</h2>
-              <p className="mt-3 text-sm leading-7 text-slate-600">This version uses a browser-stored workspace account so the full flow works immediately on Vercel with zero backend setup.</p>
+              <p className="mt-3 text-sm leading-7 text-slate-600">This version uses browser-local storage for workspace data, and optional Google sign-in when a Google client ID is configured.</p>
             </div>
 
             <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
@@ -127,7 +182,7 @@ export function AuthCard({
                       value={companyName}
                       onChange={(event) => setCompanyName(event.target.value)}
                       type="text"
-                      placeholder="Mac Services Dispatch"
+                      placeholder=""
                       className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/15"
                     />
                   </label>
@@ -155,7 +210,7 @@ export function AuthCard({
                   onChange={(event) => setEmail(event.target.value)}
                   type="email"
                   autoComplete="email"
-                  placeholder="dispatch@company.com"
+                  placeholder=""
                   className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/15"
                   required
                 />
@@ -167,7 +222,7 @@ export function AuthCard({
                   onChange={(event) => setPassword(event.target.value)}
                   type="password"
                   autoComplete={mode === "login" ? "current-password" : "new-password"}
-                  placeholder="At least 8 characters"
+                  placeholder=""
                   className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/15"
                   minLength={8}
                   required
@@ -184,6 +239,20 @@ export function AuthCard({
                 {loading ? "Working…" : copy.submitLabel}
               </button>
             </form>
+
+            <div className="my-6 flex items-center gap-4">
+              <div className="h-px flex-1 bg-slate-200" />
+              <span className="text-xs uppercase tracking-[0.24em] text-slate-400">or</span>
+              <div className="h-px flex-1 bg-slate-200" />
+            </div>
+
+            {googleClientId ? (
+              <div ref={googleButtonRef} className="flex justify-center" />
+            ) : (
+              <button type="button" disabled className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-400">
+                Google sign-in requires NEXT_PUBLIC_GOOGLE_CLIENT_ID
+              </button>
+            )}
 
             <div className="mt-6 flex items-center justify-between gap-4 text-sm text-slate-500">
               <Link href="/" className="transition hover:text-brand-ink">

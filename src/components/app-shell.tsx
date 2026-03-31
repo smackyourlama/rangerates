@@ -52,7 +52,8 @@ export function SiteFrame({ children }: { children: ReactNode }) {
                 <NavLink href="/dashboard">Dashboard</NavLink>
                 <NavLink href="/dashboard/quotes">Quotes</NavLink>
                 <NavLink href="/dashboard/customers">Customers</NavLink>
-                <NavLink href="/dashboard/profile">Profile</NavLink>
+                <NavLink href="/dashboard/messages">Messages</NavLink>
+                <NavLink href="/dashboard/profile">Settings</NavLink>
               </>
             ) : null}
           </nav>
@@ -123,7 +124,8 @@ export function DashboardShell({
           <NavLink href="/dashboard/quotes/new">New quote</NavLink>
           <NavLink href="/dashboard/customers">Customers</NavLink>
           <NavLink href="/dashboard/customers/new">Add customer</NavLink>
-          <NavLink href="/dashboard/profile">Profile</NavLink>
+          <NavLink href="/dashboard/messages">Messages</NavLink>
+          <NavLink href="/dashboard/profile">Settings</NavLink>
         </div>
 
         {children}
@@ -179,14 +181,15 @@ export function StatusBadge({ value }: { value: string }) {
     switch (value) {
       case "approved":
       case "active":
-        return "bg-emerald-100 text-emerald-900";
       case "sent":
+        return "bg-emerald-100 text-emerald-900";
       case "follow-up":
         return "bg-amber-100 text-amber-900";
       case "priority":
       case "scheduled":
         return "bg-sky-100 text-sky-900";
       case "archived":
+      case "failed":
         return "bg-slate-200 text-slate-700";
       default:
         return "bg-violet-100 text-violet-900";

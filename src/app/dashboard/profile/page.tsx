@@ -7,7 +7,7 @@ import { useApp } from "@/components/app-provider";
 import type { WorkspaceRole } from "@/lib/workspace";
 
 export default function ProfilePage() {
-  const { currentUser, updateProfile } = useApp();
+  const { currentUser, settings, updateProfile, updateSettings } = useApp();
   const [message, setMessage] = useState<string | null>(null);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -21,16 +21,24 @@ export default function ProfilePage() {
       role: String(form.get("role") || currentUser.role) as WorkspaceRole,
       password: String(form.get("password") || ""),
     });
-    setMessage("Profile updated.");
+
+    updateSettings({
+      baseLocation: String(form.get("baseLocation") || ""),
+      twilioAccountSid: String(form.get("twilioAccountSid") || ""),
+      twilioAuthToken: String(form.get("twilioAuthToken") || ""),
+      twilioFromNumber: String(form.get("twilioFromNumber") || ""),
+    });
+
+    setMessage("Settings updated.");
     setTimeout(() => setMessage(null), 1600);
   }
 
   return (
-    <DashboardShell title="Profile" subtitle="Keep workspace identity editable and explain how auth works in this build instead of leaving account settings blank.">
+    <DashboardShell title="Settings" subtitle="Edit workspace identity, base location, and Twilio credentials from one place.">
       <RequireAuth next="/dashboard/profile">
         {!currentUser ? null : (
           <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
-            <Panel title="Workspace profile" description="Edit your stored account details here.">
+            <Panel title="Workspace settings" description="Everything needed to run quoting and texting sits here.">
               <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
                 <label className="block text-sm font-medium text-slate-700">
                   Full name
@@ -42,7 +50,7 @@ export default function ProfilePage() {
                 </label>
                 <label className="block text-sm font-medium text-slate-700">
                   Company
-                  <input name="companyName" defaultValue={currentUser.companyName} className="input-base mt-2" />
+                  <input name="companyName" defaultValue={currentUser.companyName} placeholder="" className="input-base mt-2" />
                 </label>
                 <label className="block text-sm font-medium text-slate-700">
                   Role
@@ -55,27 +63,43 @@ export default function ProfilePage() {
                 </label>
                 <label className="block text-sm font-medium text-slate-700 md:col-span-2">
                   Replace password
-                  <input name="password" type="password" minLength={8} placeholder="Leave blank to keep the current one" className="input-base mt-2" />
+                  <input name="password" type="password" minLength={8} placeholder="" className="input-base mt-2" />
+                </label>
+                <label className="block text-sm font-medium text-slate-700 md:col-span-2">
+                  Base location for distance calculations
+                  <input name="baseLocation" defaultValue={settings?.baseLocation || ""} placeholder="" className="input-base mt-2" />
+                </label>
+                <label className="block text-sm font-medium text-slate-700 md:col-span-2">
+                  Twilio Account SID
+                  <input name="twilioAccountSid" defaultValue={settings?.twilioAccountSid || ""} placeholder="" className="input-base mt-2" />
+                </label>
+                <label className="block text-sm font-medium text-slate-700 md:col-span-2">
+                  Twilio Auth Token
+                  <input name="twilioAuthToken" defaultValue={settings?.twilioAuthToken || ""} placeholder="" className="input-base mt-2" />
+                </label>
+                <label className="block text-sm font-medium text-slate-700 md:col-span-2">
+                  Twilio From Number
+                  <input name="twilioFromNumber" defaultValue={settings?.twilioFromNumber || ""} placeholder="" className="input-base mt-2" />
                 </label>
 
                 {message ? <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900 md:col-span-2">{message}</div> : null}
 
                 <div className="md:col-span-2 flex flex-wrap gap-3">
-                  <button type="submit" className="button-primary">Save profile</button>
+                  <button type="submit" className="button-primary">Save settings</button>
                 </div>
               </form>
             </Panel>
 
-            <Panel title="Implementation notes" description="Be honest about what exists in the product today.">
+            <Panel title="Implementation notes" description="This build still uses browser-local storage, so be explicit about the tradeoffs.">
               <div className="space-y-4 text-sm leading-7 text-slate-600">
                 <div className="rounded-2xl border border-slate-100 bg-white p-4">
-                  This build stores auth and app data in browser local storage so the full logged-in website works immediately with zero backend setup.
+                  Base location, Twilio credentials, customers, quotes, and message logs are stored in browser localStorage for this build.
                 </div>
                 <div className="rounded-2xl border border-slate-100 bg-white p-4">
-                  Quotes, customers, dashboard widgets, and profile edits all persist on the same device/browser session until cleared.
+                  Google sign-in works when `NEXT_PUBLIC_GOOGLE_CLIENT_ID` is configured for the app.
                 </div>
                 <div className="rounded-2xl border border-slate-100 bg-white p-4">
-                  If you want a multi-device production backend next, the app structure is now ready to swap the storage layer for Supabase, Postgres, or another auth/data service.
+                  For a production rollout, move auth, settings, and Twilio credentials to a real backend instead of browser storage.
                 </div>
               </div>
             </Panel>

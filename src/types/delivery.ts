@@ -1,5 +1,6 @@
 export type DeliveryRequestPayload = {
   address: string;
+  originAddress?: string;
 };
 
 export type CoordinatePair = [number, number]; // [longitude, latitude]
@@ -15,6 +16,7 @@ export type DeliveryQuote = {
   price: number;
   tierLabel: string;
   distanceSource: "driving" | "straight-line";
+  originAddress: string;
   originCoordinates: CoordinatePair;
   destinationCoordinates: CoordinatePair;
 };

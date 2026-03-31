@@ -3,19 +3,25 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import {
   buildQuoteSummary,
+  createDefaultSettings,
   createEmptyWorkspaceState,
   createId,
   normalizeEmail,
   persistWorkspaceState,
   loadWorkspaceState,
   sortCustomersByNewest,
+  sortMessagesByNewest,
   sortQuotesByNewest,
   type CustomerInput,
   type CustomerRecord,
+  type GoogleLoginInput,
   type LoginInput,
+  type MessageLogInput,
+  type MessageLogRecord,
   type QuoteInput,
   type QuoteRecord,
   type SignupInput,
+  type WorkspaceSettings,
   type WorkspaceState,
   type WorkspaceUser,
 } from "@/lib/workspace";
@@ -23,17 +29,22 @@ import {
 type AppContextValue = {
   ready: boolean;
   currentUser: WorkspaceUser | null;
+  settings: WorkspaceSettings | null;
   users: WorkspaceUser[];
   customers: CustomerRecord[];
   quotes: QuoteRecord[];
+  messages: MessageLogRecord[];
   signUp: (input: SignupInput) => void;
   login: (input: LoginInput) => void;
+  loginWithGoogle: (input: GoogleLoginInput) => void;
   logout: () => void;
   updateProfile: (patch: Partial<Pick<WorkspaceUser, "fullName" | "companyName" | "role" | "password">>) => void;
+  updateSettings: (patch: Partial<Omit<WorkspaceSettings, "userId">>) => void;
   addCustomer: (input: CustomerInput) => CustomerRecord;
   updateCustomer: (customerId: string, patch: Partial<Omit<CustomerRecord, "id" | "userId" | "createdAt">>) => void;
   addQuote: (input: QuoteInput) => QuoteRecord;
   updateQuote: (quoteId: string, patch: Partial<Omit<QuoteRecord, "id" | "userId" | "createdAt">>) => void;
+  addMessageLog: (input: MessageLogInput) => MessageLogRecord;
   getCustomerById: (customerId: string) => CustomerRecord | undefined;
   getQuoteById: (quoteId: string) => QuoteRecord | undefined;
 };
@@ -66,6 +77,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [state.sessionUserId, state.users],
   );
 
+  const settings = useMemo(() => {
+    if (!currentUser) return null;
+    return state.settings.find((entry) => entry.userId === currentUser.id) ?? createDefaultSettings(currentUser.id);
+  }, [currentUser, state.settings]);
+
   const customers = useMemo(() => {
     if (!currentUser) return [];
     return sortCustomersByNewest(state.customers.filter((customer) => customer.userId === currentUser.id));
@@ -76,12 +92,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return sortQuotesByNewest(state.quotes.filter((quote) => quote.userId === currentUser.id));
   }, [currentUser, state.quotes]);
 
+  const messages = useMemo(() => {
+    if (!currentUser) return [];
+    return sortMessagesByNewest(state.messages.filter((message) => message.userId === currentUser.id));
+  }, [currentUser, state.messages]);
+
   const value = useMemo<AppContextValue>(() => ({
     ready,
     currentUser,
+    settings,
     users: state.users,
     customers,
     quotes,
+    messages,
     signUp(input) {
       const email = normalizeEmail(input.email);
       const fullName = input.fullName.trim();
@@ -112,6 +135,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           password,
           companyName,
           role: input.role,
+          authProvider: "password",
           createdAt: new Date().toISOString(),
         };
 
@@ -119,6 +143,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           ...previous,
           sessionUserId: user.id,
           users: [...previous.users, user],
+          settings: [...previous.settings, createDefaultSettings(user.id)],
         };
       });
     },
@@ -137,6 +162,46 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return {
           ...previous,
           sessionUserId: user.id,
+        };
+      });
+    },
+    loginWithGoogle(input) {
+      const email = normalizeEmail(input.email);
+
+      setState((previous) => {
+        const existing = previous.users.find(
+          (entry) => entry.googleSubject === input.googleSubject || normalizeEmail(entry.email) === email,
+        );
+
+        if (existing) {
+          return {
+            ...previous,
+            sessionUserId: existing.id,
+            users: previous.users.map((user) =>
+              user.id === existing.id
+                ? { ...user, fullName: input.fullName || user.fullName, email, googleSubject: input.googleSubject, authProvider: "google" }
+                : user,
+            ),
+          };
+        }
+
+        const user: WorkspaceUser = {
+          id: createId("user"),
+          fullName: input.fullName || "Google user",
+          email,
+          password: "",
+          companyName: "",
+          role: "dispatch",
+          authProvider: "google",
+          googleSubject: input.googleSubject,
+          createdAt: new Date().toISOString(),
+        };
+
+        return {
+          ...previous,
+          sessionUserId: user.id,
+          users: [...previous.users, user],
+          settings: [...previous.settings, createDefaultSettings(user.id)],
         };
       });
     },
@@ -163,6 +228,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           };
         }),
       }));
+    },
+    updateSettings(patch) {
+      assertUser(currentUser);
+      setState((previous) => {
+        const existing = previous.settings.find((entry) => entry.userId === currentUser.id) ?? createDefaultSettings(currentUser.id);
+        const next = {
+          ...existing,
+          ...patch,
+        };
+        const withoutCurrent = previous.settings.filter((entry) => entry.userId !== currentUser.id);
+        return {
+          ...previous,
+          settings: [...withoutCurrent, next],
+        };
+      });
     },
     addCustomer(input) {
       assertUser(currentUser);
@@ -223,6 +303,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         userId: currentUser.id,
         customerId: customer?.id ?? null,
         customerLabel: customer?.name ?? input.customerLabel?.trim() ?? "Walk-in customer",
+        clientPhone: input.clientPhone?.trim() || customer?.phone || "",
+        appointmentDate: input.appointmentDate?.trim() ?? "",
+        appointmentTime: input.appointmentTime?.trim() ?? "",
         status: input.status ?? "draft",
         notes: input.notes?.trim() ?? "",
         shareSummary: buildQuoteSummary({
@@ -231,6 +314,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           tierLabel: input.tierLabel,
           price: input.price,
           routeType: input.routeType,
+          originAddress: input.originAddress,
         }),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -267,10 +351,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               tierLabel: nextQuote.tierLabel,
               price: nextQuote.price,
               routeType: nextQuote.routeType,
+              originAddress: nextQuote.originAddress,
             }),
           };
         }),
       }));
+    },
+    addMessageLog(input) {
+      assertUser(currentUser);
+      const message: MessageLogRecord = {
+        id: createId("msg"),
+        userId: currentUser.id,
+        customerId: input.customerId ?? null,
+        quoteId: input.quoteId ?? null,
+        phone: input.phone,
+        body: input.body,
+        provider: input.provider,
+        status: input.status,
+        providerMessageSid: input.providerMessageSid,
+        error: input.error,
+        createdAt: new Date().toISOString(),
+      };
+      setState((previous) => ({
+        ...previous,
+        messages: [message, ...previous.messages],
+      }));
+      return message;
     },
     getCustomerById(customerId) {
       if (!currentUser) return undefined;
@@ -280,7 +386,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (!currentUser) return undefined;
       return state.quotes.find((quote) => quote.id === quoteId && quote.userId === currentUser.id);
     },
-  }), [currentUser, customers, quotes, ready, state.customers, state.quotes, state.users]);
+  }), [currentUser, customers, messages, quotes, ready, settings, state.customers, state.messages, state.quotes, state.settings, state.users]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

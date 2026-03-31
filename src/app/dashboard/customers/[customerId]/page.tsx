@@ -1,23 +1,123 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { DashboardShell, EmptyState, Panel, StatusBadge } from "@/components/app-shell";
 import { RequireAuth } from "@/components/auth-guard";
 import { useApp } from "@/components/app-provider";
-import { formatCurrency, formatDateTime, type CustomerStatus } from "@/lib/workspace";
+import { buildQuoteTextMessage, formatCurrency, formatDateTime, type CustomerStatus } from "@/lib/workspace";
+import { useParams } from "next/navigation";
 
 export default function CustomerDetailPage() {
   const params = useParams<{ customerId: string }>();
   const customerId = Array.isArray(params?.customerId) ? params.customerId[0] : params?.customerId;
-  const { quotes, getCustomerById, updateCustomer } = useApp();
+  const { quotes, settings, currentUser, getCustomerById, updateCustomer, addMessageLog } = useApp();
   const customer = customerId ? getCustomerById(customerId) : undefined;
   const relatedQuotes = customer ? quotes.filter((quote) => quote.customerId === customer.id) : [];
+  const [selectedQuoteId, setSelectedQuoteId] = useState("");
+  const [phone, setPhone] = useState("");
+  const [appointmentDate, setAppointmentDate] = useState("");
+  const [appointmentTime, setAppointmentTime] = useState("");
+  const [sending, setSending] = useState(false);
+  const [messageState, setMessageState] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const selectedQuote = useMemo(
+    () => relatedQuotes.find((quote) => quote.id === selectedQuoteId) ?? relatedQuotes[0] ?? null,
+    [relatedQuotes, selectedQuoteId],
+  );
+
+  useEffect(() => {
+    if (customer) {
+      setPhone((current) => current || customer.phone || selectedQuote?.clientPhone || "");
+    }
+  }, [customer, selectedQuote?.clientPhone]);
+
+  useEffect(() => {
+    if (selectedQuote) {
+      setSelectedQuoteId(selectedQuote.id);
+      setAppointmentDate((current) => current || selectedQuote.appointmentDate || "");
+      setAppointmentTime((current) => current || selectedQuote.appointmentTime || "");
+    }
+  }, [selectedQuote]);
+
+  const smsBody = useMemo(() => {
+    if (!customer) return "";
+    if (!selectedQuote) {
+      return `Hi ${customer.name}, this is ${currentUser?.companyName || "RangeRates"}. We received your request and will text you with scheduling details soon.`;
+    }
+    return buildQuoteTextMessage(currentUser?.companyName || "RangeRates", customer.name, {
+      appointmentDate,
+      appointmentTime,
+      destinationAddress: selectedQuote.destinationAddress,
+      routeType: selectedQuote.routeType,
+    });
+  }, [appointmentDate, appointmentTime, currentUser?.companyName, customer, selectedQuote]);
+
+  async function handleSendMessage() {
+    if (!customer) return;
+    setError(null);
+    setMessageState(null);
+
+    if (!phone.trim()) {
+      setError("Enter the client phone number first.");
+      return;
+    }
+
+    if (!settings?.twilioAccountSid || !settings?.twilioAuthToken || !settings?.twilioFromNumber) {
+      setError("Add Twilio settings in Settings before sending messages.");
+      return;
+    }
+
+    setSending(true);
+    try {
+      const response = await fetch("/api/messages/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accountSid: settings.twilioAccountSid,
+          authToken: settings.twilioAuthToken,
+          fromNumber: settings.twilioFromNumber,
+          to: phone,
+          body: smsBody,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload?.error || "Unable to send SMS.");
+      }
+
+      addMessageLog({
+        customerId: customer.id,
+        quoteId: selectedQuote?.id ?? null,
+        phone,
+        body: smsBody,
+        provider: "twilio",
+        status: "sent",
+        providerMessageSid: payload?.sid,
+      });
+      setMessageState("Text message sent.");
+    } catch (sendError) {
+      const message = sendError instanceof Error ? sendError.message : "Unable to send SMS.";
+      addMessageLog({
+        customerId: customer.id,
+        quoteId: selectedQuote?.id ?? null,
+        phone,
+        body: smsBody,
+        provider: "twilio",
+        status: "failed",
+        error: message,
+      });
+      setError(message);
+    } finally {
+      setSending(false);
+    }
+  }
 
   return (
     <DashboardShell
       title="Customer detail"
-      subtitle="Customer pages should combine editing, status management, and related quote history in one place."
+      subtitle="Customer pages now combine editing, quote history, and outbound quote messaging in one place."
       actions={
         <>
           <Link href="/dashboard/customers" className="button-secondary">
@@ -78,8 +178,52 @@ export default function CustomerDetailPage() {
                   </div>
                   <label className="block text-sm font-medium text-slate-700 md:col-span-2">
                     Notes
-                    <textarea value={customer.notes} onChange={(event) => updateCustomer(customer.id, { notes: event.target.value })} rows={6} className="input-base mt-2 min-h-[160px] resize-y" placeholder="Preferred route timing, access details, or service notes" />
+                    <textarea value={customer.notes} onChange={(event) => updateCustomer(customer.id, { notes: event.target.value })} rows={6} className="input-base mt-2 min-h-[160px] resize-y" placeholder="" />
                   </label>
+                </div>
+              </Panel>
+
+              <Panel title="Send client text" description="Send a quote / appointment text using your saved Twilio settings.">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="block text-sm font-medium text-slate-700 md:col-span-2">
+                    Linked quote
+                    <select value={selectedQuoteId} onChange={(event) => setSelectedQuoteId(event.target.value)} className="input-base mt-2">
+                      {relatedQuotes.length === 0 ? <option value="">No linked quotes</option> : null}
+                      {relatedQuotes.map((quote) => (
+                        <option key={quote.id} value={quote.id}>
+                          {quote.destinationAddress} · {formatCurrency(quote.price)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block text-sm font-medium text-slate-700">
+                    Phone number
+                    <input value={phone} onChange={(event) => setPhone(event.target.value)} className="input-base mt-2" placeholder="" />
+                  </label>
+                  <label className="block text-sm font-medium text-slate-700">
+                    Appointment date
+                    <input value={appointmentDate} onChange={(event) => setAppointmentDate(event.target.value)} type="date" className="input-base mt-2" />
+                  </label>
+                  <label className="block text-sm font-medium text-slate-700 md:col-span-2">
+                    Appointment time
+                    <input value={appointmentTime} onChange={(event) => setAppointmentTime(event.target.value)} type="time" className="input-base mt-2" />
+                  </label>
+                  <label className="block text-sm font-medium text-slate-700 md:col-span-2">
+                    Message preview
+                    <textarea value={smsBody} readOnly rows={5} className="input-base mt-2 min-h-[140px] resize-y" />
+                  </label>
+                </div>
+
+                {messageState ? <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">{messageState}</div> : null}
+                {error ? <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">{error}</div> : null}
+
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <button type="button" onClick={handleSendMessage} disabled={sending} className="button-primary disabled:cursor-not-allowed disabled:opacity-60">
+                    {sending ? "Sending…" : "Send text"}
+                  </button>
+                  <Link href="/dashboard/messages" className="button-secondary">
+                    Open message logs
+                  </Link>
                 </div>
               </Panel>
             </div>
@@ -113,6 +257,10 @@ export default function CustomerDetailPage() {
                   <Link href="/dashboard/quotes/new" className="block rounded-2xl border border-slate-100 bg-white p-4 transition hover:bg-brand-primary/5">
                     <div className="text-sm text-slate-500">Quote desk</div>
                     <div className="mt-1 font-semibold text-brand-ink">Create another quote for {customer.name}</div>
+                  </Link>
+                  <Link href="/dashboard/messages" className="block rounded-2xl border border-slate-100 bg-white p-4 transition hover:bg-brand-primary/5">
+                    <div className="text-sm text-slate-500">Messages</div>
+                    <div className="mt-1 font-semibold text-brand-ink">Review message logs and delivery state</div>
                   </Link>
                   <Link href="/dashboard/customers" className="block rounded-2xl border border-slate-100 bg-white p-4 transition hover:bg-brand-primary/5">
                     <div className="text-sm text-slate-500">Customer list</div>
