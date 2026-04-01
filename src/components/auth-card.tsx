@@ -21,18 +21,6 @@ const roleOptions: { value: WorkspaceRole; label: string }[] = [
   { value: "operations", label: "Operations manager" },
 ];
 
-function decodeJwt(token: string): { email?: string; name?: string; sub?: string } {
-  const [, payload] = token.split(".");
-  if (!payload) return {};
-  try {
-    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
-    const json = typeof window !== "undefined" ? window.atob(normalized) : "";
-    return JSON.parse(json);
-  } catch {
-    return {};
-  }
-}
-
 export function AuthCard({
   mode,
   nextPath,
@@ -66,22 +54,27 @@ export function AuthCard({
 
     window.google.accounts.id.initialize({
       client_id: googleClientId,
-      callback: (response: { credential?: string }) => {
-        const payload = response.credential ? decodeJwt(response.credential) : {};
-        if (!payload.email || !payload.sub) {
-          setError("Google sign-in did not return a usable profile.");
+      callback: async (response: { credential?: string }) => {
+        const credential = response.credential?.trim();
+        if (!credential) {
+          setError("Google sign-in did not return a usable credential.");
           return;
         }
-        loginWithGoogle({
-          email: payload.email,
-          fullName: payload.name || "Google user",
-          googleSubject: payload.sub,
-        });
-        router.push(resolvedNextPath);
+
+        setLoading(true);
+        setError(null);
+        try {
+          await loginWithGoogle({ credential });
+          router.push(resolvedNextPath);
+        } catch (googleError) {
+          setError(googleError instanceof Error ? googleError.message : "Google sign-in failed.");
+        } finally {
+          setLoading(false);
+        }
       },
     });
 
-    googleButtonRef.current.innerHTML = "";
+    googleButtonRef.current.replaceChildren();
     window.google.accounts.id.renderButton(googleButtonRef.current, {
       theme: "outline",
       size: "large",
@@ -119,9 +112,9 @@ export function AuthCard({
 
     try {
       if (mode === "signup") {
-        signUp({ fullName, companyName, email, password, role });
+        await signUp({ fullName, companyName, email, password, role });
       } else {
-        login({ email, password });
+        await login({ email, password });
       }
 
       router.push(resolvedNextPath);
@@ -159,7 +152,7 @@ export function AuthCard({
             <div>
               <div className="text-xs font-semibold uppercase tracking-[0.38em] text-brand-muted">Workspace access</div>
               <h2 className="mt-3 text-3xl font-semibold text-brand-ink">{copy.title}</h2>
-              <p className="mt-3 text-sm leading-7 text-slate-600">This version uses browser-local storage for workspace data, and optional Google sign-in when a Google client ID is configured.</p>
+              <p className="mt-3 text-sm leading-7 text-slate-600">This version keeps authentication and sensitive messaging credentials on the server, with optional Google sign-in when a Google client ID is configured.</p>
             </div>
 
             <form className="mt-8 space-y-4" onSubmit={handleSubmit}>

@@ -2,6 +2,8 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
 import { cookies } from "next/headers";
+import { normalizeEmail, type WorkspaceRole } from "@/lib/workspace";
+import { hashPassword, verifyPassword } from "@/lib/server/passwords";
 import { readWorkspaceStateFile, writeWorkspaceStateFile } from "@/lib/server/workspace-store";
 
 const DATA_DIR = path.join(process.cwd(), "data");
@@ -90,19 +92,6 @@ function defaultState(): AdminState {
     ],
     subscriptions: [],
   };
-}
-
-export function hashPassword(password: string) {
-  const salt = crypto.randomBytes(16).toString("hex");
-  const hash = crypto.scryptSync(password, salt, 64).toString("hex");
-  return `${salt}:${hash}`;
-}
-
-export function verifyPassword(password: string, encoded: string) {
-  const [salt, existingHash] = encoded.split(":");
-  if (!salt || !existingHash) return false;
-  const candidate = crypto.scryptSync(password, salt, 64).toString("hex");
-  return crypto.timingSafeEqual(Buffer.from(existingHash, "hex"), Buffer.from(candidate, "hex"));
 }
 
 function lockoutActive(lockoutUntil: string | null) {
@@ -307,39 +296,51 @@ export async function createWorkspaceUser(payload: {
   email: string;
   password: string;
   companyName: string;
-  role: "dispatch" | "owner" | "coordinator" | "operations";
+  role: WorkspaceRole;
 }) {
   const workspace = await readWorkspaceStateFile();
+  const normalizedEmail = normalizeEmail(payload.email);
+  if (workspace.users.some((user) => normalizeEmail(user.email) === normalizedEmail)) {
+    throw new Error("A workspace user with that email already exists.");
+  }
+
   const userId = `user_${crypto.randomUUID()}`;
   workspace.users.push({
     id: userId,
     fullName: payload.fullName,
-    email: payload.email,
-    password: payload.password,
+    email: normalizedEmail,
     companyName: payload.companyName,
     role: payload.role,
     authProvider: "password",
     createdAt: nowIso(),
+    passwordHash: hashPassword(payload.password),
+    sessionToken: null,
   });
-  workspace.settings.push({ userId, baseLocation: "", twilioAccountSid: "", twilioAuthToken: "", twilioFromNumber: "" });
+  workspace.settings.push({ userId, baseLocation: "" });
   await writeWorkspaceStateFile(workspace);
   return workspace;
 }
 
 export async function updateWorkspaceUser(userId: string, patch: Record<string, string>) {
   const workspace = await readWorkspaceStateFile();
-  workspace.users = workspace.users.map((user) =>
-    user.id === userId
-      ? {
-          ...user,
-          fullName: patch.fullName ?? user.fullName,
-          email: patch.email ?? user.email,
-          companyName: patch.companyName ?? user.companyName,
-          role: (patch.role as typeof user.role) ?? user.role,
-          password: patch.password || user.password,
-        }
-      : user,
-  );
+  workspace.users = workspace.users.map((user) => {
+    if (user.id !== userId) {
+      return user;
+    }
+
+    const nextEmail = typeof patch.email === "string" && patch.email.trim() ? normalizeEmail(patch.email) : user.email;
+    return {
+      ...user,
+      fullName: patch.fullName?.trim() || user.fullName,
+      email: nextEmail,
+      companyName: typeof patch.companyName === "string" ? patch.companyName.trim() : user.companyName,
+      role: (["dispatch", "owner", "coordinator", "operations"] as const).includes(patch.role as WorkspaceRole)
+        ? (patch.role as WorkspaceRole)
+        : user.role,
+      passwordHash: patch.password?.trim() ? hashPassword(patch.password.trim()) : user.passwordHash,
+      sessionToken: patch.password?.trim() ? null : user.sessionToken,
+    };
+  });
   await writeWorkspaceStateFile(workspace);
   return workspace;
 }
@@ -366,7 +367,13 @@ export async function buildAdminSnapshot() {
   }, 0);
 
   return {
-    users: workspace.users,
+    users: workspace.users.map((user) => ({
+      id: user.id,
+      fullName: user.fullName,
+      email: user.email,
+      companyName: user.companyName,
+      role: user.role,
+    })),
     admin,
     analytics: {
       totalUsers: workspace.users.length,

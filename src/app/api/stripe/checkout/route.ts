@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getUserSubscription, readAdminStateFile } from "@/lib/server/admin-store";
-import { readWorkspaceStateFile } from "@/lib/server/workspace-store";
+import { getWorkspaceUserSession } from "@/lib/server/user-auth";
 
 function stripeBody(payload: Record<string, string>) {
   const form = new URLSearchParams();
@@ -11,6 +11,11 @@ function stripeBody(payload: Record<string, string>) {
 }
 
 export async function POST(request: Request) {
+  const session = await getWorkspaceUserSession();
+  if (!session.authenticated || !session.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const admin = await readAdminStateFile();
   if (!admin.stripe.secretKey) {
     return NextResponse.json({ error: "Stripe secret key is not configured in admin." }, { status: 400 });
@@ -18,14 +23,12 @@ export async function POST(request: Request) {
 
   const payload = await request.json();
   const planId = String(payload?.planId || "");
-  const userId = String(payload?.userId || "");
   const origin = String(payload?.origin || "").replace(/\/$/, "");
   const plan = admin.plans.find((entry) => entry.id === planId && entry.active);
-  const workspace = await readWorkspaceStateFile();
-  const user = workspace.users.find((entry) => entry.id === userId);
-  const existingSubscription = await getUserSubscription(userId);
+  const user = session.user;
+  const existingSubscription = await getUserSubscription(user.id);
 
-  if (!plan || !userId || !origin || !user) {
+  if (!plan || !origin) {
     return NextResponse.json({ error: "Missing billing parameters." }, { status: 400 });
   }
 
@@ -49,7 +52,7 @@ export async function POST(request: Request) {
       "line_items[0][price_data][unit_amount]": String(Math.round(plan.price * 100)),
       "line_items[0][price_data][product_data][name]": `RangeRates ${plan.name}`,
       "line_items[0][price_data][recurring][interval]": plan.interval === "yearly" ? "year" : "month",
-      "metadata[userId]": userId,
+      "metadata[userId]": user.id,
       "metadata[email]": user.email,
       "metadata[planName]": plan.name,
       "metadata[amount]": String(plan.price),

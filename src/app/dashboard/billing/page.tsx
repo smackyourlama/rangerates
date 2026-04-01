@@ -25,7 +25,7 @@ export default function BillingPage() {
       setPlans(plansPayload?.plans || []);
       setBillingEnabled(Boolean(plansPayload?.billingEnabled));
       if (currentUser?.id) {
-        const subscriptionResponse = await fetch(`/api/billing/subscription?userId=${encodeURIComponent(currentUser.id)}`, { cache: "no-store" });
+        const subscriptionResponse = await fetch("/api/billing/subscription", { cache: "no-store" });
         const subscriptionPayload = await subscriptionResponse.json();
         setSubscription(subscriptionPayload?.subscription || null);
       }
@@ -46,7 +46,7 @@ export default function BillingPage() {
     const response = await fetch("/api/stripe/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ planId, userId: currentUser.id, origin: window.location.origin }),
+      body: JSON.stringify({ planId, origin: window.location.origin }),
     });
     const payload = await response.json();
     setBusyPlanId(null);
@@ -64,7 +64,7 @@ export default function BillingPage() {
     const response = await fetch("/api/stripe/portal", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: currentUser.id, origin: window.location.origin }),
+      body: JSON.stringify({ origin: window.location.origin }),
     });
     const payload = await response.json();
     if (!response.ok) {

@@ -13,7 +13,6 @@ export type WorkspaceUser = {
   id: string;
   fullName: string;
   email: string;
-  password: string;
   companyName: string;
   role: WorkspaceRole;
   authProvider: WorkspaceAuthProvider;
@@ -24,9 +23,6 @@ export type WorkspaceUser = {
 export type WorkspaceSettings = {
   userId: string;
   baseLocation: string;
-  twilioAccountSid: string;
-  twilioAuthToken: string;
-  twilioFromNumber: string;
 };
 
 export type CustomerRecord = {
@@ -93,9 +89,7 @@ export type SignupInput = {
 };
 
 export type GoogleLoginInput = {
-  fullName: string;
-  email: string;
-  googleSubject: string;
+  credential: string;
 };
 
 export type LoginInput = {
@@ -136,8 +130,8 @@ export type MessageLogInput = {
   error?: string;
 };
 
-export const STORAGE_VERSION = 2;
-export const APP_STORAGE_KEY = "rangerates-workspace-v2";
+export const STORAGE_VERSION = 3;
+export const APP_STORAGE_KEY = "rangerates-workspace-v3";
 
 export function createEmptyWorkspaceState(): WorkspaceState {
   return {
@@ -155,9 +149,6 @@ export function createDefaultSettings(userId: string): WorkspaceSettings {
   return {
     userId,
     baseLocation: "",
-    twilioAccountSid: "",
-    twilioAuthToken: "",
-    twilioFromNumber: "",
   };
 }
 
@@ -224,15 +215,160 @@ export function sortMessagesByNewest(messages: MessageLogRecord[]) {
   return [...messages].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
 }
 
+function sanitizeUser(value: Partial<WorkspaceUser> | null | undefined): WorkspaceUser | null {
+  const id = typeof value?.id === "string" ? value.id : "";
+  const email = typeof value?.email === "string" ? normalizeEmail(value.email) : "";
+  const authProvider = value?.authProvider === "google" ? "google" : "password";
+  const role = (["dispatch", "owner", "coordinator", "operations"] as const).includes(value?.role as WorkspaceRole)
+    ? (value!.role as WorkspaceRole)
+    : "dispatch";
+
+  if (!id || !email) {
+    return null;
+  }
+
+  return {
+    id,
+    fullName: typeof value?.fullName === "string" ? value.fullName : "",
+    email,
+    companyName: typeof value?.companyName === "string" ? value.companyName : "",
+    role,
+    authProvider,
+    googleSubject: typeof value?.googleSubject === "string" && value.googleSubject ? value.googleSubject : undefined,
+    createdAt: typeof value?.createdAt === "string" && value.createdAt ? value.createdAt : new Date().toISOString(),
+  };
+}
+
+function sanitizeSettings(value: Partial<WorkspaceSettings> | null | undefined): WorkspaceSettings | null {
+  const userId = typeof value?.userId === "string" ? value.userId : "";
+  if (!userId) {
+    return null;
+  }
+
+  return {
+    userId,
+    baseLocation: typeof value?.baseLocation === "string" ? value.baseLocation : "",
+  };
+}
+
+function sanitizeCustomer(value: Partial<CustomerRecord> | null | undefined): CustomerRecord | null {
+  const id = typeof value?.id === "string" ? value.id : "";
+  const userId = typeof value?.userId === "string" ? value.userId : "";
+  if (!id || !userId) {
+    return null;
+  }
+
+  return {
+    id,
+    userId,
+    name: typeof value?.name === "string" ? value.name : "",
+    company: typeof value?.company === "string" ? value.company : "",
+    phone: typeof value?.phone === "string" ? value.phone : "",
+    email: typeof value?.email === "string" ? value.email : "",
+    address: typeof value?.address === "string" ? value.address : "",
+    notes: typeof value?.notes === "string" ? value.notes : "",
+    status: (["active", "priority", "follow-up", "archived"] as const).includes(value?.status as CustomerStatus)
+      ? (value!.status as CustomerStatus)
+      : "active",
+    createdAt: typeof value?.createdAt === "string" && value.createdAt ? value.createdAt : new Date().toISOString(),
+    updatedAt: typeof value?.updatedAt === "string" && value.updatedAt ? value.updatedAt : new Date().toISOString(),
+  };
+}
+
+function sanitizeQuote(value: Partial<QuoteRecord> | null | undefined): QuoteRecord | null {
+  const id = typeof value?.id === "string" ? value.id : "";
+  const userId = typeof value?.userId === "string" ? value.userId : "";
+  if (!id || !userId) {
+    return null;
+  }
+
+  const routeType = (["delivery", "pickup", "after-hours"] as const).includes(value?.routeType as RouteType)
+    ? (value!.routeType as RouteType)
+    : "delivery";
+  const urgency = (["same-day", "today", "next-day", "flex"] as const).includes(value?.urgency as Urgency)
+    ? (value!.urgency as Urgency)
+    : "today";
+  const status = (["draft", "sent", "approved", "scheduled", "archived"] as const).includes(value?.status as QuoteStatus)
+    ? (value!.status as QuoteStatus)
+    : "draft";
+
+  const originCoordinates = Array.isArray(value?.originCoordinates) && value.originCoordinates.length === 2
+    ? [Number(value.originCoordinates[0] || 0), Number(value.originCoordinates[1] || 0)] as [number, number]
+    : [0, 0] as [number, number];
+  const destinationCoordinates = Array.isArray(value?.destinationCoordinates) && value.destinationCoordinates.length === 2
+    ? [Number(value.destinationCoordinates[0] || 0), Number(value.destinationCoordinates[1] || 0)] as [number, number]
+    : [0, 0] as [number, number];
+
+  const quote: QuoteRecord = {
+    id,
+    userId,
+    customerId: typeof value?.customerId === "string" ? value.customerId : null,
+    customerLabel: typeof value?.customerLabel === "string" ? value.customerLabel : "Walk-in customer",
+    clientPhone: typeof value?.clientPhone === "string" ? value.clientPhone : "",
+    appointmentDate: typeof value?.appointmentDate === "string" ? value.appointmentDate : "",
+    appointmentTime: typeof value?.appointmentTime === "string" ? value.appointmentTime : "",
+    routeType,
+    urgency,
+    status,
+    notes: typeof value?.notes === "string" ? value.notes : "",
+    destinationAddress: typeof value?.destinationAddress === "string" ? value.destinationAddress : "",
+    originAddress: typeof value?.originAddress === "string" ? value.originAddress : ORIGIN_ADDRESS,
+    originCoordinates,
+    destinationCoordinates,
+    distanceSource: value?.distanceSource === "straight-line" ? "straight-line" : "driving",
+    distanceMiles: Number(value?.distanceMiles || 0),
+    tierLabel: typeof value?.tierLabel === "string" ? value.tierLabel : "",
+    price: Number(value?.price || 0),
+    shareSummary: typeof value?.shareSummary === "string" ? value.shareSummary : "",
+    createdAt: typeof value?.createdAt === "string" && value.createdAt ? value.createdAt : new Date().toISOString(),
+    updatedAt: typeof value?.updatedAt === "string" && value.updatedAt ? value.updatedAt : new Date().toISOString(),
+  };
+
+  quote.shareSummary = buildQuoteSummary({
+    destinationAddress: quote.destinationAddress,
+    distanceMiles: quote.distanceMiles,
+    tierLabel: quote.tierLabel,
+    price: quote.price,
+    routeType: quote.routeType,
+    originAddress: quote.originAddress,
+  });
+
+  return quote;
+}
+
+function sanitizeMessage(value: Partial<MessageLogRecord> | null | undefined): MessageLogRecord | null {
+  const id = typeof value?.id === "string" ? value.id : "";
+  const userId = typeof value?.userId === "string" ? value.userId : "";
+  if (!id || !userId) {
+    return null;
+  }
+
+  return {
+    id,
+    userId,
+    customerId: typeof value?.customerId === "string" ? value.customerId : null,
+    quoteId: typeof value?.quoteId === "string" ? value.quoteId : null,
+    phone: typeof value?.phone === "string" ? value.phone : "",
+    body: typeof value?.body === "string" ? value.body : "",
+    provider: "twilio",
+    status: (["sent", "failed", "queued"] as const).includes(value?.status as MessageStatus)
+      ? (value!.status as MessageStatus)
+      : "queued",
+    providerMessageSid: typeof value?.providerMessageSid === "string" ? value.providerMessageSid : undefined,
+    error: typeof value?.error === "string" ? value.error : undefined,
+    createdAt: typeof value?.createdAt === "string" && value.createdAt ? value.createdAt : new Date().toISOString(),
+  };
+}
+
 export function sanitizeWorkspaceState(parsed: Partial<WorkspaceState> | null | undefined): WorkspaceState {
   return {
     version: STORAGE_VERSION,
-    sessionUserId: parsed?.sessionUserId ?? null,
-    users: Array.isArray(parsed?.users) ? parsed!.users : [],
-    settings: Array.isArray(parsed?.settings) ? parsed!.settings : [],
-    customers: Array.isArray(parsed?.customers) ? parsed!.customers : [],
-    quotes: Array.isArray(parsed?.quotes) ? parsed!.quotes : [],
-    messages: Array.isArray(parsed?.messages) ? parsed!.messages : [],
+    sessionUserId: typeof parsed?.sessionUserId === "string" ? parsed.sessionUserId : null,
+    users: Array.isArray(parsed?.users) ? parsed.users.map((value) => sanitizeUser(value)).filter((value): value is WorkspaceUser => Boolean(value)) : [],
+    settings: Array.isArray(parsed?.settings) ? parsed.settings.map((value) => sanitizeSettings(value)).filter((value): value is WorkspaceSettings => Boolean(value)) : [],
+    customers: Array.isArray(parsed?.customers) ? parsed.customers.map((value) => sanitizeCustomer(value)).filter((value): value is CustomerRecord => Boolean(value)) : [],
+    quotes: Array.isArray(parsed?.quotes) ? parsed.quotes.map((value) => sanitizeQuote(value)).filter((value): value is QuoteRecord => Boolean(value)) : [],
+    messages: Array.isArray(parsed?.messages) ? parsed.messages.map((value) => sanitizeMessage(value)).filter((value): value is MessageLogRecord => Boolean(value)) : [],
   };
 }
 
@@ -263,7 +399,7 @@ export function loadWorkspaceState(): WorkspaceState {
   }
 
   try {
-    const raw = window.localStorage.getItem(APP_STORAGE_KEY) || window.localStorage.getItem("rangerates-workspace-v1");
+    const raw = window.localStorage.getItem(APP_STORAGE_KEY) || window.localStorage.getItem("rangerates-workspace-v2") || window.localStorage.getItem("rangerates-workspace-v1");
     if (!raw) {
       return createEmptyWorkspaceState();
     }

@@ -11,7 +11,7 @@ import { buildQuoteTextMessage, formatCurrency, formatDateTime, type CustomerSta
 export default function CustomerDetailPage() {
   const params = useParams<{ customerId: string }>();
   const customerId = Array.isArray(params?.customerId) ? params.customerId[0] : params?.customerId;
-  const { quotes, settings, currentUser, getCustomerById, updateCustomer, addMessageLog } = useApp();
+  const { quotes, currentUser, getCustomerById, updateCustomer, addMessageLog } = useApp();
   const customer = customerId ? getCustomerById(customerId) : undefined;
   const relatedQuotes = useMemo(() => {
     if (!customer) {
@@ -70,20 +70,12 @@ export default function CustomerDetailPage() {
       return;
     }
 
-    if (!settings?.twilioAccountSid || !settings?.twilioAuthToken || !settings?.twilioFromNumber) {
-      setError("Add Twilio settings in Settings before sending messages.");
-      return;
-    }
-
     setSending(true);
     try {
       const response = await fetch("/api/messages/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          accountSid: settings.twilioAccountSid,
-          authToken: settings.twilioAuthToken,
-          fromNumber: settings.twilioFromNumber,
           to: phone,
           body: smsBody,
         }),
@@ -189,7 +181,7 @@ export default function CustomerDetailPage() {
                 </div>
               </Panel>
 
-              <Panel title="Send client text" description="Send a quote / appointment text using your saved Twilio settings.">
+              <Panel title="Send client text" description="Send a quote / appointment text using the secured server-side Twilio configuration.">
                 <div className="grid gap-4 md:grid-cols-2">
                   <label className="block text-sm font-medium text-slate-700 md:col-span-2">
                     Linked quote

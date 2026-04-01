@@ -256,7 +256,7 @@ export function AdminPanel() {
       <div className="mx-auto max-w-xl rounded-[32px] border border-white/80 bg-white/92 p-8 shadow-soft">
         <div className="text-[11px] font-semibold uppercase tracking-[0.34em] text-brand-muted">Admin login</div>
         <h1 className="mt-3 text-3xl font-semibold text-brand-ink">RangeRates admin panel</h1>
-        <p className="mt-3 text-sm leading-7 text-slate-600">Sign in with the admin account to manage users, subscriptions, analytics, Twilio, and Stripe configuration.</p>
+        <p className="mt-3 text-sm leading-7 text-slate-600">Sign in with the admin account to manage users, subscriptions, analytics, Twilio, and Stripe configuration. Workspace passwords stay hashed server-side and are never exposed back to this screen.</p>
         {session?.lockoutUntil ? <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">Login protection is active until {new Date(session.lockoutUntil).toLocaleString()}.</div> : null}
         <form className="mt-6 space-y-4" onSubmit={handleLogin}>
           <label className="block text-sm font-medium text-slate-700">
@@ -346,7 +346,7 @@ export function AdminPanel() {
               <label className="block text-sm font-medium text-slate-700">Email<input name="email" type="email" className={inputClass} /></label>
               <label className="block text-sm font-medium text-slate-700">Company<input name="companyName" className={inputClass} /></label>
               <label className="block text-sm font-medium text-slate-700">Role<select name="role" className={inputClass}><option value="dispatch">Dispatch</option><option value="owner">Owner</option><option value="coordinator">Coordinator</option><option value="operations">Operations</option></select></label>
-              <label className="block text-sm font-medium text-slate-700 md:col-span-2">Password<input name="password" defaultValue="changeme123" className={inputClass} /></label>
+              <label className="block text-sm font-medium text-slate-700 md:col-span-2">Password<input name="password" type="password" placeholder="Set a temporary password" className={inputClass} /></label>
               <div className="md:col-span-2"><button type="submit" className="inline-flex rounded-full bg-brand-primary px-5 py-3 text-sm font-semibold text-white transition hover:brightness-110">Add user</button></div>
             </form>
 

@@ -1,19 +1,21 @@
 import { NextResponse } from "next/server";
 import { getUserSubscription, readAdminStateFile } from "@/lib/server/admin-store";
-import { readWorkspaceStateFile } from "@/lib/server/workspace-store";
+import { getWorkspaceUserSession } from "@/lib/server/user-auth";
 
 export async function POST(request: Request) {
+  const session = await getWorkspaceUserSession();
+  if (!session.authenticated || !session.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const admin = await readAdminStateFile();
   if (!admin.stripe.secretKey) {
     return NextResponse.json({ error: "Stripe secret key is not configured in admin." }, { status: 400 });
   }
   const payload = await request.json();
-  const userId = String(payload?.userId || "");
   const origin = String(payload?.origin || "").replace(/\/$/, "");
-  const workspace = await readWorkspaceStateFile();
-  const user = workspace.users.find((entry) => entry.id === userId);
-  const subscription = await getUserSubscription(userId);
-  if (!user || !subscription?.stripeCustomerId) {
+  const subscription = await getUserSubscription(session.user.id);
+  if (!subscription?.stripeCustomerId) {
     return NextResponse.json({ error: "No Stripe customer found for this user yet." }, { status: 404 });
   }
 

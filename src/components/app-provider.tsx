@@ -7,9 +7,6 @@ import {
   createEmptyWorkspaceState,
   createId,
   normalizeEmail,
-  persistWorkspaceState,
-  loadWorkspaceState,
-  pickPreferredWorkspaceState,
   sanitizeWorkspaceState,
   sortCustomersByNewest,
   sortMessagesByNewest,
@@ -36,11 +33,11 @@ type AppContextValue = {
   customers: CustomerRecord[];
   quotes: QuoteRecord[];
   messages: MessageLogRecord[];
-  signUp: (input: SignupInput) => void;
-  login: (input: LoginInput) => void;
-  loginWithGoogle: (input: GoogleLoginInput) => void;
-  logout: () => void;
-  updateProfile: (patch: Partial<Pick<WorkspaceUser, "fullName" | "companyName" | "role" | "password">>) => void;
+  signUp: (input: SignupInput) => Promise<void>;
+  login: (input: LoginInput) => Promise<void>;
+  loginWithGoogle: (input: GoogleLoginInput) => Promise<void>;
+  logout: () => Promise<void>;
+  updateProfile: (patch: Partial<Pick<WorkspaceUser, "fullName" | "companyName" | "role">> & { password?: string }) => Promise<void>;
   updateSettings: (patch: Partial<Omit<WorkspaceSettings, "userId">>) => void;
   addCustomer: (input: CustomerInput) => CustomerRecord;
   updateCustomer: (customerId: string, patch: Partial<Omit<CustomerRecord, "id" | "userId" | "createdAt">>) => void;
@@ -59,6 +56,14 @@ function assertUser(user: WorkspaceUser | null): asserts user is WorkspaceUser {
   }
 }
 
+async function readJson(response: Response) {
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(payload?.error || "Request failed.");
+  }
+  return payload;
+}
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<WorkspaceState>(createEmptyWorkspaceState);
   const [ready, setReady] = useState(false);
@@ -67,24 +72,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
 
     async function hydrateWorkspace() {
-      const localState = loadWorkspaceState();
-
       try {
         const response = await fetch("/api/workspace", { cache: "no-store" });
-        if (!response.ok) {
-          throw new Error("Unable to load server workspace.");
+        if (response.status === 401) {
+          if (!cancelled) {
+            setState(createEmptyWorkspaceState());
+            setReady(true);
+          }
+          return;
         }
 
-        const payload = await response.json();
-        const nextState = pickPreferredWorkspaceState(payload?.state, localState);
-
+        const payload = await readJson(response);
         if (!cancelled) {
-          setState(nextState);
+          setState(sanitizeWorkspaceState(payload?.state));
           setReady(true);
         }
       } catch {
         if (!cancelled) {
-          setState(localState);
+          setState(createEmptyWorkspaceState());
           setReady(true);
         }
       }
@@ -98,15 +103,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!ready) {
-      return;
-    }
-
-    persistWorkspaceState(state);
-  }, [ready, state]);
-
-  useEffect(() => {
-    if (!ready) {
+    if (!ready || !state.sessionUserId) {
       return;
     }
 
@@ -165,128 +162,59 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     customers,
     quotes,
     messages,
-    signUp(input) {
-      const email = normalizeEmail(input.email);
-      const fullName = input.fullName.trim();
-      const companyName = input.companyName.trim();
-      const password = input.password;
-
-      if (!fullName) {
-        throw new Error("Enter your name first.");
-      }
-
-      if (!email) {
-        throw new Error("Enter your email first.");
-      }
-
-      if (password.length < 8) {
-        throw new Error("Use at least 8 characters for the password.");
-      }
-
-      setState((previous) => {
-        if (previous.users.some((user) => normalizeEmail(user.email) === email)) {
-          throw new Error("That email already has an account. Log in instead.");
-        }
-
-        const user: WorkspaceUser = {
-          id: createId("user"),
-          fullName,
-          email,
-          password,
-          companyName,
-          role: input.role,
-          authProvider: "password",
-          createdAt: new Date().toISOString(),
-        };
-
-        return {
-          ...previous,
-          sessionUserId: user.id,
-          users: [...previous.users, user],
-          settings: [...previous.settings, createDefaultSettings(user.id)],
-        };
+    async signUp(input) {
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
       });
+      await readJson(response);
+      const workspaceResponse = await fetch("/api/workspace", { cache: "no-store" });
+      const workspacePayload = await readJson(workspaceResponse);
+      setState(sanitizeWorkspaceState(workspacePayload?.state));
     },
-    login(input) {
-      const email = normalizeEmail(input.email);
-
-      setState((previous) => {
-        const user = previous.users.find(
-          (entry) => normalizeEmail(entry.email) === email && entry.password === input.password,
-        );
-
-        if (!user) {
-          throw new Error("Email or password is incorrect.");
-        }
-
-        return {
-          ...previous,
-          sessionUserId: user.id,
-        };
+    async login(input) {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
       });
+      await readJson(response);
+      const workspaceResponse = await fetch("/api/workspace", { cache: "no-store" });
+      const workspacePayload = await readJson(workspaceResponse);
+      setState(sanitizeWorkspaceState(workspacePayload?.state));
     },
-    loginWithGoogle(input) {
-      const email = normalizeEmail(input.email);
-
-      setState((previous) => {
-        const existing = previous.users.find(
-          (entry) => entry.googleSubject === input.googleSubject || normalizeEmail(entry.email) === email,
-        );
-
-        if (existing) {
-          return {
-            ...previous,
-            sessionUserId: existing.id,
-            users: previous.users.map((user) =>
-              user.id === existing.id
-                ? { ...user, fullName: input.fullName || user.fullName, email, googleSubject: input.googleSubject, authProvider: "google" }
-                : user,
-            ),
-          };
-        }
-
-        const user: WorkspaceUser = {
-          id: createId("user"),
-          fullName: input.fullName || "Google user",
-          email,
-          password: "",
-          companyName: "",
-          role: "dispatch",
-          authProvider: "google",
-          googleSubject: input.googleSubject,
-          createdAt: new Date().toISOString(),
-        };
-
-        return {
-          ...previous,
-          sessionUserId: user.id,
-          users: [...previous.users, user],
-          settings: [...previous.settings, createDefaultSettings(user.id)],
-        };
+    async loginWithGoogle(input) {
+      const response = await fetch("/api/auth/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
       });
+      await readJson(response);
+      const workspaceResponse = await fetch("/api/workspace", { cache: "no-store" });
+      const workspacePayload = await readJson(workspaceResponse);
+      setState(sanitizeWorkspaceState(workspacePayload?.state));
     },
-    logout() {
-      setState((previous) => ({
-        ...previous,
-        sessionUserId: null,
-      }));
+    async logout() {
+      await fetch("/api/auth/logout", { method: "POST" });
+      setState(createEmptyWorkspaceState());
     },
-    updateProfile(patch) {
+    async updateProfile(patch) {
       assertUser(currentUser);
+      const response = await fetch("/api/auth/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+      const payload = await readJson(response);
+      const nextUser = payload?.user as WorkspaceUser | undefined;
+      if (!nextUser) {
+        return;
+      }
 
       setState((previous) => ({
         ...previous,
-        users: previous.users.map((user) => {
-          if (user.id !== currentUser.id) return user;
-
-          return {
-            ...user,
-            fullName: patch.fullName?.trim() || user.fullName,
-            companyName: typeof patch.companyName === "string" ? patch.companyName.trim() : user.companyName,
-            role: patch.role ?? user.role,
-            password: patch.password?.trim() ? patch.password : user.password,
-          };
-        }),
+        users: previous.users.map((user) => (user.id === currentUser.id ? nextUser : user)),
       }));
     },
     updateSettings(patch) {

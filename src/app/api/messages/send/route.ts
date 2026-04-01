@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { readAdminStateFile } from "@/lib/server/admin-store";
+import { getWorkspaceUserSession } from "@/lib/server/user-auth";
 
 function basicAuth(accountSid: string, authToken: string) {
   const raw = `${accountSid}:${authToken}`;
@@ -8,20 +9,29 @@ function basicAuth(accountSid: string, authToken: string) {
 
 export async function POST(request: Request) {
   try {
+    const session = await getWorkspaceUserSession();
+    if (!session.authenticated) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const payload = await request.json();
     const admin = await readAdminStateFile();
-    const accountSid = String(payload?.accountSid || admin.twilioDefaults.accountSid || "").trim();
-    const authToken = String(payload?.authToken || admin.twilioDefaults.authToken || "").trim();
-    const fromNumber = String(payload?.fromNumber || admin.twilioDefaults.fromNumber || "").trim();
+    const accountSid = String(admin.twilioDefaults.accountSid || "").trim();
+    const authToken = String(admin.twilioDefaults.authToken || "").trim();
+    const fromNumber = String(admin.twilioDefaults.fromNumber || "").trim();
     const to = String(payload?.to || "").trim();
     const body = String(payload?.body || "").trim();
 
     if (!accountSid || !authToken || !fromNumber) {
-      return NextResponse.json({ error: "Twilio settings are incomplete." }, { status: 400 });
+      return NextResponse.json({ error: "Twilio settings are incomplete in admin." }, { status: 400 });
     }
 
     if (!to || !body) {
       return NextResponse.json({ error: "Phone number and message body are required." }, { status: 400 });
+    }
+
+    if (body.length > 1600) {
+      return NextResponse.json({ error: "Message body is too long." }, { status: 400 });
     }
 
     const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {

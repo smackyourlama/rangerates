@@ -1,20 +1,15 @@
 import { NextResponse } from "next/server";
 import { getUserSubscription } from "@/lib/server/admin-store";
-import { readWorkspaceStateFile } from "@/lib/server/workspace-store";
+import { getWorkspaceUserSession } from "@/lib/server/user-auth";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const userId = url.searchParams.get("userId") || "";
-  if (!userId) {
-    return NextResponse.json({ subscription: null }, { headers: { "Cache-Control": "no-store" } });
+export async function GET() {
+  const session = await getWorkspaceUserSession();
+  if (!session.authenticated || !session.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const workspace = await readWorkspaceStateFile();
-  const user = workspace.users.find((entry) => entry.id === userId);
-  if (!user) {
-    return NextResponse.json({ subscription: null }, { headers: { "Cache-Control": "no-store" } });
-  }
-  const subscription = await getUserSubscription(userId);
+
+  const subscription = await getUserSubscription(session.user.id);
   return NextResponse.json({ subscription }, { headers: { "Cache-Control": "no-store" } });
 }

@@ -10,12 +10,12 @@ export default function ProfilePage() {
   const { currentUser, settings, updateProfile, updateSettings } = useApp();
   const [message, setMessage] = useState<string | null>(null);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!currentUser) return;
 
     const form = new FormData(event.currentTarget);
-    updateProfile({
+    await updateProfile({
       fullName: String(form.get("fullName") || currentUser.fullName),
       companyName: String(form.get("companyName") || currentUser.companyName),
       role: String(form.get("role") || currentUser.role) as WorkspaceRole,
@@ -24,9 +24,6 @@ export default function ProfilePage() {
 
     updateSettings({
       baseLocation: String(form.get("baseLocation") || ""),
-      twilioAccountSid: String(form.get("twilioAccountSid") || ""),
-      twilioAuthToken: String(form.get("twilioAuthToken") || ""),
-      twilioFromNumber: String(form.get("twilioFromNumber") || ""),
     });
 
     setMessage("Settings updated.");
@@ -34,11 +31,11 @@ export default function ProfilePage() {
   }
 
   return (
-    <DashboardShell title="Settings" subtitle="Edit workspace identity, base location, and Twilio credentials from one place.">
+    <DashboardShell title="Settings" subtitle="Edit workspace identity and base location without exposing secrets to the browser.">
       <RequireAuth next="/dashboard/profile">
         {!currentUser ? null : (
           <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
-            <Panel title="Workspace settings" description="Everything needed to run quoting and texting sits here.">
+            <Panel title="Workspace settings" description="Everything needed to run quoting lives here. Messaging credentials now stay in the server-side admin layer.">
               <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
                 <label className="block text-sm font-medium text-slate-700">
                   Full name
@@ -69,18 +66,6 @@ export default function ProfilePage() {
                   Base location for distance calculations
                   <input name="baseLocation" defaultValue={settings?.baseLocation || ""} placeholder="" className="input-base mt-2" />
                 </label>
-                <label className="block text-sm font-medium text-slate-700 md:col-span-2">
-                  Twilio Account SID
-                  <input name="twilioAccountSid" defaultValue={settings?.twilioAccountSid || ""} placeholder="" className="input-base mt-2" />
-                </label>
-                <label className="block text-sm font-medium text-slate-700 md:col-span-2">
-                  Twilio Auth Token
-                  <input name="twilioAuthToken" defaultValue={settings?.twilioAuthToken || ""} placeholder="" className="input-base mt-2" />
-                </label>
-                <label className="block text-sm font-medium text-slate-700 md:col-span-2">
-                  Twilio From Number
-                  <input name="twilioFromNumber" defaultValue={settings?.twilioFromNumber || ""} placeholder="" className="input-base mt-2" />
-                </label>
 
                 {message ? <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900 md:col-span-2">{message}</div> : null}
 
@@ -90,16 +75,16 @@ export default function ProfilePage() {
               </form>
             </Panel>
 
-            <Panel title="Implementation notes" description="This build now keeps a browser backup, but the source of truth is a server-side workspace file.">
+            <Panel title="Security notes" description="What changed in this hardening pass.">
               <div className="space-y-4 text-sm leading-7 text-slate-600">
                 <div className="rounded-2xl border border-slate-100 bg-white p-4">
-                  Workspace data now syncs to a server-side JSON store so customers, quotes, settings, and message history survive browser refreshes and restarts more cleanly than browser-only storage.
+                  Workspace data now syncs to a server-side JSON store without exposing password hashes or admin messaging secrets to the browser.
                 </div>
                 <div className="rounded-2xl border border-slate-100 bg-white p-4">
-                  Google sign-in works when `NEXT_PUBLIC_GOOGLE_CLIENT_ID` is configured for the app.
+                  Google sign-in works when `NEXT_PUBLIC_GOOGLE_CLIENT_ID` is configured, and the credential is verified on the server before login completes.
                 </div>
                 <div className="rounded-2xl border border-slate-100 bg-white p-4">
-                  Twilio credentials are still visible to the signed-in client in this build, so a production rollout should move auth and secret handling into a dedicated backend with proper access control.
+                  Twilio credentials now live only in <span className="font-semibold text-brand-ink">/admin</span>. Regular users can send messages, but they cannot read or overwrite the underlying secrets from the client.
                 </div>
               </div>
             </Panel>
