@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getUserSubscription } from "@/lib/server/admin-store";
+import { readWorkspaceStateFile } from "@/lib/server/workspace-store";
 
 export const dynamic = "force-dynamic";
 
@@ -7,6 +8,11 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const userId = url.searchParams.get("userId") || "";
   if (!userId) {
+    return NextResponse.json({ subscription: null }, { headers: { "Cache-Control": "no-store" } });
+  }
+  const workspace = await readWorkspaceStateFile();
+  const user = workspace.users.find((entry) => entry.id === userId);
+  if (!user) {
     return NextResponse.json({ subscription: null }, { headers: { "Cache-Control": "no-store" } });
   }
   const subscription = await getUserSubscription(userId);

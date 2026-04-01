@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getUserSubscription, readAdminStateFile } from "@/lib/server/admin-store";
+import { readWorkspaceStateFile } from "@/lib/server/workspace-store";
 
 export async function POST(request: Request) {
   const admin = await readAdminStateFile();
@@ -9,8 +10,10 @@ export async function POST(request: Request) {
   const payload = await request.json();
   const userId = String(payload?.userId || "");
   const origin = String(payload?.origin || "").replace(/\/$/, "");
+  const workspace = await readWorkspaceStateFile();
+  const user = workspace.users.find((entry) => entry.id === userId);
   const subscription = await getUserSubscription(userId);
-  if (!subscription?.stripeCustomerId) {
+  if (!user || !subscription?.stripeCustomerId) {
     return NextResponse.json({ error: "No Stripe customer found for this user yet." }, { status: 404 });
   }
 
