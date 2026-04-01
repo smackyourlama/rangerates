@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { readAdminStateFile } from "@/lib/server/admin-store";
 
 function basicAuth(accountSid: string, authToken: string) {
   const raw = `${accountSid}:${authToken}`;
@@ -8,9 +9,10 @@ function basicAuth(accountSid: string, authToken: string) {
 export async function POST(request: Request) {
   try {
     const payload = await request.json();
-    const accountSid = String(payload?.accountSid || "").trim();
-    const authToken = String(payload?.authToken || "").trim();
-    const fromNumber = String(payload?.fromNumber || "").trim();
+    const admin = await readAdminStateFile();
+    const accountSid = String(payload?.accountSid || admin.twilioDefaults.accountSid || "").trim();
+    const authToken = String(payload?.authToken || admin.twilioDefaults.authToken || "").trim();
+    const fromNumber = String(payload?.fromNumber || admin.twilioDefaults.fromNumber || "").trim();
     const to = String(payload?.to || "").trim();
     const body = String(payload?.body || "").trim();
 
