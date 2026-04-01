@@ -26,6 +26,8 @@ export type AdminSubscription = {
   status: "trialing" | "active" | "past_due" | "canceled";
   startedAt: string;
   renewsAt: string;
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
 };
 
 export type AdminPlan = {
@@ -213,6 +215,8 @@ export async function createSubscription(payload: {
   interval: "monthly" | "yearly";
   status: "trialing" | "active" | "past_due" | "canceled";
   renewsAt: string;
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
 }) {
   const state = await readAdminStateFile();
   state.subscriptions.unshift({ id: crypto.randomUUID(), startedAt: nowIso(), ...payload });
@@ -227,6 +231,35 @@ export async function updateSubscription(subscriptionId: string, patch: Partial<
   );
   await writeAdminStateFile(state);
   return state;
+}
+
+export async function upsertStripeSubscription(payload: {
+  userId: string;
+  email: string;
+  planName: string;
+  amount: number;
+  interval: "monthly" | "yearly";
+  status: "trialing" | "active" | "past_due" | "canceled";
+  renewsAt: string;
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+}) {
+  const state = await readAdminStateFile();
+  const existing = state.subscriptions.find((subscription) => subscription.stripeSubscriptionId && subscription.stripeSubscriptionId === payload.stripeSubscriptionId);
+  if (existing) {
+    state.subscriptions = state.subscriptions.map((subscription) =>
+      subscription.id === existing.id ? { ...subscription, ...payload } : subscription,
+    );
+  } else {
+    state.subscriptions.unshift({ id: crypto.randomUUID(), startedAt: nowIso(), ...payload });
+  }
+  await writeAdminStateFile(state);
+  return state;
+}
+
+export async function getUserSubscription(userId: string) {
+  const state = await readAdminStateFile();
+  return state.subscriptions.find((subscription) => subscription.userId === userId && subscription.status !== "canceled") || null;
 }
 
 export async function deleteSubscription(subscriptionId: string) {

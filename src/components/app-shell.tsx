@@ -145,6 +145,7 @@ export function DashboardShell({
                   <NavLink href="/dashboard/customers" variant="rail">Customers</NavLink>
                   <NavLink href="/dashboard/customers/new" variant="rail">Add customer</NavLink>
                   <NavLink href="/dashboard/messages" variant="rail">Messages</NavLink>
+                  <NavLink href="/dashboard/billing" variant="rail">Billing</NavLink>
                   <NavLink href="/dashboard/profile" variant="rail">Settings</NavLink>
                 </div>
               </section>
@@ -179,6 +180,7 @@ export function DashboardShell({
               <NavLink href="/dashboard/customers">Customers</NavLink>
               <NavLink href="/dashboard/customers/new">Add customer</NavLink>
               <NavLink href="/dashboard/messages">Messages</NavLink>
+              <NavLink href="/dashboard/billing">Billing</NavLink>
               <NavLink href="/dashboard/profile">Settings</NavLink>
             </div>
 
