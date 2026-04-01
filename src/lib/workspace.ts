@@ -136,11 +136,12 @@ export type MessageLogInput = {
   error?: string;
 };
 
+export const STORAGE_VERSION = 2;
 export const APP_STORAGE_KEY = "rangerates-workspace-v2";
 
 export function createEmptyWorkspaceState(): WorkspaceState {
   return {
-    version: 2,
+    version: STORAGE_VERSION,
     sessionUserId: null,
     users: [],
     settings: [],
@@ -223,6 +224,39 @@ export function sortMessagesByNewest(messages: MessageLogRecord[]) {
   return [...messages].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
 }
 
+export function sanitizeWorkspaceState(parsed: Partial<WorkspaceState> | null | undefined): WorkspaceState {
+  return {
+    version: STORAGE_VERSION,
+    sessionUserId: parsed?.sessionUserId ?? null,
+    users: Array.isArray(parsed?.users) ? parsed!.users : [],
+    settings: Array.isArray(parsed?.settings) ? parsed!.settings : [],
+    customers: Array.isArray(parsed?.customers) ? parsed!.customers : [],
+    quotes: Array.isArray(parsed?.quotes) ? parsed!.quotes : [],
+    messages: Array.isArray(parsed?.messages) ? parsed!.messages : [],
+  };
+}
+
+export function workspaceStateRecordCount(state: WorkspaceState) {
+  return state.users.length + state.settings.length + state.customers.length + state.quotes.length + state.messages.length + (state.sessionUserId ? 1 : 0);
+}
+
+export function pickPreferredWorkspaceState(remoteState: Partial<WorkspaceState> | null | undefined, localState: Partial<WorkspaceState> | null | undefined) {
+  const remote = sanitizeWorkspaceState(remoteState);
+  const local = sanitizeWorkspaceState(localState);
+  const remoteCount = workspaceStateRecordCount(remote);
+  const localCount = workspaceStateRecordCount(local);
+
+  if (remoteCount === 0 && localCount > 0) {
+    return local;
+  }
+
+  if (localCount === 0) {
+    return remote;
+  }
+
+  return remoteCount >= localCount ? remote : local;
+}
+
 export function loadWorkspaceState(): WorkspaceState {
   if (typeof window === "undefined") {
     return createEmptyWorkspaceState();
@@ -234,16 +268,7 @@ export function loadWorkspaceState(): WorkspaceState {
       return createEmptyWorkspaceState();
     }
 
-    const parsed = JSON.parse(raw) as Partial<WorkspaceState>;
-    return {
-      version: 2,
-      sessionUserId: parsed.sessionUserId ?? null,
-      users: Array.isArray(parsed.users) ? parsed.users : [],
-      settings: Array.isArray(parsed.settings) ? parsed.settings : [],
-      customers: Array.isArray(parsed.customers) ? parsed.customers : [],
-      quotes: Array.isArray(parsed.quotes) ? parsed.quotes : [],
-      messages: Array.isArray(parsed.messages) ? parsed.messages : [],
-    };
+    return sanitizeWorkspaceState(JSON.parse(raw));
   } catch {
     return createEmptyWorkspaceState();
   }
@@ -254,5 +279,5 @@ export function persistWorkspaceState(state: WorkspaceState) {
     return;
   }
 
-  window.localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(state));
+  window.localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(sanitizeWorkspaceState(state)));
 }

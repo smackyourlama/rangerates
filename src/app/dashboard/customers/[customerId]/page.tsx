@@ -2,18 +2,24 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useParams } from "next/navigation";
 import { DashboardShell, EmptyState, Panel, StatusBadge } from "@/components/app-shell";
 import { RequireAuth } from "@/components/auth-guard";
 import { useApp } from "@/components/app-provider";
 import { buildQuoteTextMessage, formatCurrency, formatDateTime, type CustomerStatus } from "@/lib/workspace";
-import { useParams } from "next/navigation";
 
 export default function CustomerDetailPage() {
   const params = useParams<{ customerId: string }>();
   const customerId = Array.isArray(params?.customerId) ? params.customerId[0] : params?.customerId;
   const { quotes, settings, currentUser, getCustomerById, updateCustomer, addMessageLog } = useApp();
   const customer = customerId ? getCustomerById(customerId) : undefined;
-  const relatedQuotes = customer ? quotes.filter((quote) => quote.customerId === customer.id) : [];
+  const relatedQuotes = useMemo(() => {
+    if (!customer) {
+      return [];
+    }
+
+    return quotes.filter((quote) => quote.customerId === customer.id);
+  }, [customer, quotes]);
   const [selectedQuoteId, setSelectedQuoteId] = useState("");
   const [phone, setPhone] = useState("");
   const [appointmentDate, setAppointmentDate] = useState("");
@@ -133,7 +139,7 @@ export default function CustomerDetailPage() {
         {!customer ? (
           <EmptyState
             title="Customer not found"
-            description="This customer record is not available in the current browser workspace. Go back to the list and open another record."
+            description="This customer record is not available in the current workspace. Go back to the list and open another record."
             actionHref="/dashboard/customers"
             actionLabel="Back to customer list"
           />

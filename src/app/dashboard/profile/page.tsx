@@ -90,16 +90,16 @@ export default function ProfilePage() {
               </form>
             </Panel>
 
-            <Panel title="Implementation notes" description="This build still uses browser-local storage, so be explicit about the tradeoffs.">
+            <Panel title="Implementation notes" description="This build now keeps a browser backup, but the source of truth is a server-side workspace file.">
               <div className="space-y-4 text-sm leading-7 text-slate-600">
                 <div className="rounded-2xl border border-slate-100 bg-white p-4">
-                  Base location, Twilio credentials, customers, quotes, and message logs are stored in browser localStorage for this build.
+                  Workspace data now syncs to a server-side JSON store so customers, quotes, settings, and message history survive browser refreshes and restarts more cleanly than browser-only storage.
                 </div>
                 <div className="rounded-2xl border border-slate-100 bg-white p-4">
                   Google sign-in works when `NEXT_PUBLIC_GOOGLE_CLIENT_ID` is configured for the app.
                 </div>
                 <div className="rounded-2xl border border-slate-100 bg-white p-4">
-                  For a production rollout, move auth, settings, and Twilio credentials to a real backend instead of browser storage.
+                  Twilio credentials are still visible to the signed-in client in this build, so a production rollout should move auth and secret handling into a dedicated backend with proper access control.
                 </div>
               </div>
             </Panel>

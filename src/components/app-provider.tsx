@@ -9,6 +9,8 @@ import {
   normalizeEmail,
   persistWorkspaceState,
   loadWorkspaceState,
+  pickPreferredWorkspaceState,
+  sanitizeWorkspaceState,
   sortCustomersByNewest,
   sortMessagesByNewest,
   sortQuotesByNewest,
@@ -62,14 +64,72 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setState(loadWorkspaceState());
-    setReady(true);
+    let cancelled = false;
+
+    async function hydrateWorkspace() {
+      const localState = loadWorkspaceState();
+
+      try {
+        const response = await fetch("/api/workspace", { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error("Unable to load server workspace.");
+        }
+
+        const payload = await response.json();
+        const nextState = pickPreferredWorkspaceState(payload?.state, localState);
+
+        if (!cancelled) {
+          setState(nextState);
+          setReady(true);
+        }
+      } catch {
+        if (!cancelled) {
+          setState(localState);
+          setReady(true);
+        }
+      }
+    }
+
+    hydrateWorkspace();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
-    if (ready) {
-      persistWorkspaceState(state);
+    if (!ready) {
+      return;
     }
+
+    persistWorkspaceState(state);
+  }, [ready, state]);
+
+  useEffect(() => {
+    if (!ready) {
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeout = window.setTimeout(async () => {
+      try {
+        await fetch("/api/workspace", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ state: sanitizeWorkspaceState(state) }),
+          signal: controller.signal,
+        });
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") {
+          console.error("Unable to sync workspace state", error);
+        }
+      }
+    }, 250);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeout);
+    };
   }, [ready, state]);
 
   const currentUser = useMemo(
@@ -386,7 +446,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (!currentUser) return undefined;
       return state.quotes.find((quote) => quote.id === quoteId && quote.userId === currentUser.id);
     },
-  }), [currentUser, customers, messages, quotes, ready, settings, state.customers, state.messages, state.quotes, state.settings, state.users]);
+  }), [currentUser, customers, messages, quotes, ready, settings, state.customers, state.quotes, state.users]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
