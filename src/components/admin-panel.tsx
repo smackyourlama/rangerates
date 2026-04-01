@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 
 type Snapshot = {
@@ -24,6 +25,7 @@ type SessionState = {
   authenticated: boolean;
   requirePasswordChange: boolean;
   username: string | null;
+  lockoutUntil?: string | null;
 };
 
 const inputClass = "mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/15";
@@ -80,6 +82,7 @@ export function AdminPanel() {
     const payload = await response.json();
     if (!response.ok) {
       setError(payload?.error || "Unable to log in.");
+      await refreshSession();
       return;
     }
     const current = await refreshSession();
@@ -254,14 +257,15 @@ export function AdminPanel() {
         <div className="text-[11px] font-semibold uppercase tracking-[0.34em] text-brand-muted">Admin login</div>
         <h1 className="mt-3 text-3xl font-semibold text-brand-ink">RangeRates admin panel</h1>
         <p className="mt-3 text-sm leading-7 text-slate-600">Sign in with the admin account to manage users, subscriptions, analytics, Twilio, and Stripe configuration.</p>
+        {session?.lockoutUntil ? <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">Login protection is active until {new Date(session.lockoutUntil).toLocaleString()}.</div> : null}
         <form className="mt-6 space-y-4" onSubmit={handleLogin}>
           <label className="block text-sm font-medium text-slate-700">
             Username
-            <input name="username" defaultValue="admin" className={inputClass} />
+            <input name="username" defaultValue="admin" className={inputClass} autoComplete="username" />
           </label>
           <label className="block text-sm font-medium text-slate-700">
             Password
-            <input name="password" type="password" defaultValue="admin" className={inputClass} />
+            <input name="password" type="password" className={inputClass} autoComplete="current-password" />
           </label>
           {error ? <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">{error}</div> : null}
           <button type="submit" className="inline-flex rounded-full bg-brand-primary px-5 py-3 text-sm font-semibold text-white transition hover:brightness-110">
@@ -277,7 +281,7 @@ export function AdminPanel() {
       <div className="mx-auto max-w-xl rounded-[32px] border border-white/80 bg-white/92 p-8 shadow-soft">
         <div className="text-[11px] font-semibold uppercase tracking-[0.34em] text-brand-muted">First login security</div>
         <h1 className="mt-3 text-3xl font-semibold text-brand-ink">Change the default admin password</h1>
-        <p className="mt-3 text-sm leading-7 text-slate-600">You signed in with the default admin/admin credentials. Set a new password before accessing the panel.</p>
+        <p className="mt-3 text-sm leading-7 text-slate-600">Set a strong password before using the admin console. Use at least 12 characters, one uppercase letter, and one number.</p>
         <form className="mt-6 space-y-4" onSubmit={handlePasswordChange}>
           <label className="block text-sm font-medium text-slate-700">
             New password
@@ -430,15 +434,15 @@ export function AdminPanel() {
               <div className="rounded-[24px] border border-slate-100 bg-white p-4">
                 <div className="text-sm font-semibold text-brand-ink">Twilio defaults</div>
                 <label className="mt-4 block text-sm font-medium text-slate-700">Account SID<input name="twilioAccountSid" defaultValue={snapshot?.admin.twilioDefaults.accountSid || ""} className={inputClass} /></label>
-                <label className="mt-4 block text-sm font-medium text-slate-700">Auth token<input name="twilioAuthToken" defaultValue={snapshot?.admin.twilioDefaults.authToken || ""} className={inputClass} /></label>
+                <label className="mt-4 block text-sm font-medium text-slate-700">Auth token<input name="twilioAuthToken" type="password" defaultValue={snapshot?.admin.twilioDefaults.authToken || ""} className={inputClass} /></label>
                 <label className="mt-4 block text-sm font-medium text-slate-700">From number<input name="twilioFromNumber" defaultValue={snapshot?.admin.twilioDefaults.fromNumber || ""} className={inputClass} /></label>
               </div>
 
               <div className="rounded-[24px] border border-slate-100 bg-white p-4">
                 <div className="text-sm font-semibold text-brand-ink">Stripe keys</div>
                 <label className="mt-4 block text-sm font-medium text-slate-700">Publishable key<input name="stripePublishableKey" defaultValue={snapshot?.admin.stripe.publishableKey || ""} className={inputClass} /></label>
-                <label className="mt-4 block text-sm font-medium text-slate-700">Secret key<input name="stripeSecretKey" defaultValue={snapshot?.admin.stripe.secretKey || ""} className={inputClass} /></label>
-                <label className="mt-4 block text-sm font-medium text-slate-700">Webhook secret<input name="stripeWebhookSecret" defaultValue={snapshot?.admin.stripe.webhookSecret || ""} className={inputClass} /></label>
+                <label className="mt-4 block text-sm font-medium text-slate-700">Secret key<input name="stripeSecretKey" type="password" defaultValue={snapshot?.admin.stripe.secretKey || ""} className={inputClass} /></label>
+                <label className="mt-4 block text-sm font-medium text-slate-700">Webhook secret<input name="stripeWebhookSecret" type="password" defaultValue={snapshot?.admin.stripe.webhookSecret || ""} className={inputClass} /></label>
               </div>
             </div>
 

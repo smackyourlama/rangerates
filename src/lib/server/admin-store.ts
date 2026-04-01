@@ -7,6 +7,8 @@ import { readWorkspaceStateFile, writeWorkspaceStateFile } from "@/lib/server/wo
 const DATA_DIR = path.join(process.cwd(), "data");
 const ADMIN_FILE = path.join(DATA_DIR, "rangerates-admin.json");
 export const ADMIN_COOKIE = "rangerates_admin_session";
+const MAX_FAILED_LOGINS = 5;
+const LOCKOUT_MINUTES = 15;
 
 export type AdminUser = {
   username: string;
@@ -14,6 +16,8 @@ export type AdminUser = {
   requirePasswordChange: boolean;
   activeSessionToken: string | null;
   updatedAt: string;
+  failedLoginCount: number;
+  lockoutUntil: string | null;
 };
 
 export type AdminSubscription = {
@@ -66,6 +70,8 @@ function defaultState(): AdminState {
       requirePasswordChange: true,
       activeSessionToken: null,
       updatedAt: nowIso(),
+      failedLoginCount: 0,
+      lockoutUntil: null,
     },
     twilioDefaults: {
       accountSid: "",
@@ -99,6 +105,10 @@ export function verifyPassword(password: string, encoded: string) {
   return crypto.timingSafeEqual(Buffer.from(existingHash, "hex"), Buffer.from(candidate, "hex"));
 }
 
+function lockoutActive(lockoutUntil: string | null) {
+  return Boolean(lockoutUntil && new Date(lockoutUntil).getTime() > Date.now());
+}
+
 export async function readAdminStateFile(): Promise<AdminState> {
   try {
     const raw = await readFile(ADMIN_FILE, "utf-8");
@@ -111,6 +121,8 @@ export async function readAdminStateFile(): Promise<AdminState> {
         requirePasswordChange: parsed.admin?.requirePasswordChange ?? fallback.admin.requirePasswordChange,
         activeSessionToken: parsed.admin?.activeSessionToken ?? null,
         updatedAt: parsed.admin?.updatedAt || fallback.admin.updatedAt,
+        failedLoginCount: parsed.admin?.failedLoginCount ?? 0,
+        lockoutUntil: parsed.admin?.lockoutUntil ?? null,
       },
       twilioDefaults: {
         accountSid: parsed.twilioDefaults?.accountSid || "",
@@ -147,18 +159,37 @@ export async function getAdminSession() {
     authenticated,
     requirePasswordChange: authenticated ? state.admin.requirePasswordChange : false,
     username: authenticated ? state.admin.username : null,
+    lockoutUntil: state.admin.lockoutUntil,
   };
 }
 
 export async function authenticateAdmin(username: string, password: string) {
   const state = await readAdminStateFile();
-  if (username !== state.admin.username || !verifyPassword(password, state.admin.passwordHash)) {
-    return null;
+  if (lockoutActive(state.admin.lockoutUntil)) {
+    return { ok: false as const, reason: "locked", lockoutUntil: state.admin.lockoutUntil };
   }
+
+  if (username !== state.admin.username || !verifyPassword(password, state.admin.passwordHash)) {
+    state.admin.failedLoginCount += 1;
+    if (state.admin.failedLoginCount >= MAX_FAILED_LOGINS) {
+      state.admin.lockoutUntil = new Date(Date.now() + LOCKOUT_MINUTES * 60 * 1000).toISOString();
+      state.admin.failedLoginCount = 0;
+    }
+    state.admin.updatedAt = nowIso();
+    await writeAdminStateFile(state);
+    return { ok: false as const, reason: "invalid", lockoutUntil: state.admin.lockoutUntil };
+  }
+
   state.admin.activeSessionToken = crypto.randomUUID();
   state.admin.updatedAt = nowIso();
+  state.admin.failedLoginCount = 0;
+  state.admin.lockoutUntil = null;
   await writeAdminStateFile(state);
-  return { token: state.admin.activeSessionToken, requirePasswordChange: state.admin.requirePasswordChange };
+  return {
+    ok: true as const,
+    token: state.admin.activeSessionToken,
+    requirePasswordChange: state.admin.requirePasswordChange,
+  };
 }
 
 export async function changeAdminPassword(newPassword: string) {
@@ -166,6 +197,8 @@ export async function changeAdminPassword(newPassword: string) {
   state.admin.passwordHash = hashPassword(newPassword);
   state.admin.requirePasswordChange = false;
   state.admin.updatedAt = nowIso();
+  state.admin.failedLoginCount = 0;
+  state.admin.lockoutUntil = null;
   await writeAdminStateFile(state);
   return state;
 }

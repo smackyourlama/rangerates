@@ -7,9 +7,18 @@ export async function POST(request: Request) {
   const username = String(payload?.username || "").trim();
   const password = String(payload?.password || "");
   const auth = await authenticateAdmin(username, password);
-  if (!auth) {
+  if (!auth.ok) {
+    if (auth.reason === "locked") {
+      return NextResponse.json({ error: `Admin login locked until ${auth.lockoutUntil}.` }, { status: 429 });
+    }
     return NextResponse.json({ error: "Invalid admin credentials." }, { status: 401 });
   }
-  cookies().set(ADMIN_COOKIE, auth.token, { httpOnly: true, sameSite: "lax", secure: false, path: "/" });
+  cookies().set(ADMIN_COOKIE, auth.token, {
+    httpOnly: true,
+    sameSite: "strict",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 8,
+  });
   return NextResponse.json({ success: true, requirePasswordChange: auth.requirePasswordChange });
 }
