@@ -167,7 +167,7 @@ export default function HomePage() {
           <Panel title="Pricing table" description="Use these tiers to quote delivery jobs quickly and consistently.">
             <div className="space-y-5">
               <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm leading-7 text-slate-600">
-                Quotes start from <span className="font-semibold text-brand-ink">{ORIGIN_ADDRESS}</span> and follow the active delivery tiers shown below.
+                Quotes follow the active delivery tiers shown below and can be confirmed by dispatch when needed.
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 {PRICING_TIERS.map((tier) => (
