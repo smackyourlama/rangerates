@@ -289,15 +289,7 @@ export function AuthCard({
                   )}
                 </div>
               </>
-            ) : (
-              <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
-                Use your email and password to continue.
-              </div>
-            )}
-
-            <div className="mt-6 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4 text-sm leading-6 text-slate-600">
-              Create quotes, update customer records, and review message history in one place.
-            </div>
+            ) : null}
 
             <div className="mt-6 flex items-center justify-between gap-4 text-sm text-slate-500">
               <Link href="/" className="transition hover:text-brand-ink">
