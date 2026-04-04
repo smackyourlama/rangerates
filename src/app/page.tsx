@@ -23,12 +23,12 @@ const workflowSteps = [
 ];
 
 const features = [
-  "Working login and signup flow",
+  "Working login, signup, and optional Google sign-in",
   "Dispatcher dashboard with summary widgets and quick links",
   "Saved quote history with search, filters, and detail pages",
   "Customer records with edit and archive states",
   "Live OpenStreetMap + OSRM quote engine with route preview",
-  "Vercel-friendly zero-backend setup using browser workspace storage",
+  "Server-backed workspace auth and synced quote/customer data",
 ];
 
 export default function HomePage() {
@@ -86,7 +86,7 @@ export default function HomePage() {
                 <div className="rounded-2xl border border-slate-100 bg-white p-4">
                   <div className="text-sm text-slate-500">Login + workspace</div>
                   <div className="mt-2 text-xl font-semibold text-brand-ink">Auth works immediately</div>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">This build uses browser-stored accounts so the full website works as soon as it is deployed, with no extra auth setup required.</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">Email/password login works out of the box, and Google sign-in is available when the Google client ID is configured for the deployment.</p>
                 </div>
                 <div className="rounded-2xl border border-slate-100 bg-white p-4">
                   <div className="text-sm text-slate-500">Quote desk</div>

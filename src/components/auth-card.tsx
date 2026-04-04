@@ -40,6 +40,8 @@ export function AuthCard({
   const [password, setPassword] = useState("");
   const googleButtonRef = useRef<HTMLDivElement | null>(null);
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim();
+  const [googleScriptReady, setGoogleScriptReady] = useState(false);
+  const [googleScriptFailed, setGoogleScriptFailed] = useState(false);
 
   useEffect(() => {
     if (ready && currentUser) {
@@ -48,10 +50,18 @@ export function AuthCard({
   }, [currentUser, ready, resolvedNextPath, router]);
 
   useEffect(() => {
-    if (!googleClientId || !googleButtonRef.current || !window.google?.accounts?.id) {
+    if (typeof window !== "undefined" && window.google?.accounts?.id) {
+      setGoogleScriptReady(true);
+      setGoogleScriptFailed(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!googleClientId || !googleScriptReady || !googleButtonRef.current || !window.google?.accounts?.id) {
       return;
     }
 
+    setGoogleScriptFailed(false);
     window.google.accounts.id.initialize({
       client_id: googleClientId,
       callback: async (response: { credential?: string }) => {
@@ -83,7 +93,7 @@ export function AuthCard({
       shape: "pill",
       width: 320,
     });
-  }, [googleClientId, loginWithGoogle, mode, resolvedNextPath, router]);
+  }, [googleClientId, googleScriptReady, loginWithGoogle, mode, resolvedNextPath, router]);
 
   const copy = useMemo(() => {
     if (mode === "signup") {
@@ -127,7 +137,20 @@ export function AuthCard({
 
   return (
     <SiteFrame>
-      {googleClientId ? <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" /> : null}
+      {googleClientId ? (
+        <Script
+          src="https://accounts.google.com/gsi/client"
+          strategy="afterInteractive"
+          onLoad={() => {
+            setGoogleScriptReady(true);
+            setGoogleScriptFailed(false);
+          }}
+          onError={() => {
+            setGoogleScriptFailed(true);
+            setError((current) => current || "Google sign-in could not load in this browser. You can still use email and password.");
+          }}
+        />
+      ) : null}
       <div className="mx-auto flex min-h-[calc(100vh-81px)] max-w-6xl items-center px-4 py-10 md:px-8">
         <div className="grid w-full gap-8 lg:grid-cols-[0.9fr_1.1fr]">
           <section className="rounded-3xl border border-white/70 bg-brand-primary p-8 text-white shadow-soft">
@@ -233,18 +256,29 @@ export function AuthCard({
               </button>
             </form>
 
-            <div className="my-6 flex items-center gap-4">
-              <div className="h-px flex-1 bg-slate-200" />
-              <span className="text-xs uppercase tracking-[0.24em] text-slate-400">or</span>
-              <div className="h-px flex-1 bg-slate-200" />
-            </div>
-
             {googleClientId ? (
-              <div ref={googleButtonRef} className="flex justify-center" />
+              <>
+                <div className="my-6 flex items-center gap-4">
+                  <div className="h-px flex-1 bg-slate-200" />
+                  <span className="text-xs uppercase tracking-[0.24em] text-slate-400">or</span>
+                  <div className="h-px flex-1 bg-slate-200" />
+                </div>
+
+                <div className="space-y-3">
+                  <div className="text-center text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Continue with Google</div>
+                  {googleScriptFailed ? (
+                    <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                      Google sign-in is enabled, but the Google script could not load in this browser. Refresh and try again, or use email and password for now.
+                    </div>
+                  ) : (
+                    <div ref={googleButtonRef} className="flex min-h-[44px] justify-center" />
+                  )}
+                </div>
+              </>
             ) : (
-              <button type="button" disabled className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-400">
-                Google sign-in requires NEXT_PUBLIC_GOOGLE_CLIENT_ID
-              </button>
+              <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
+                Google sign-in becomes available here once <code className="font-mono text-[12px]">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> is configured for this deployment.
+              </div>
             )}
 
             <div className="mt-6 flex items-center justify-between gap-4 text-sm text-slate-500">
