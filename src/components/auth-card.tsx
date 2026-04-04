@@ -152,25 +152,27 @@ export function AuthCard({
           }}
         />
       ) : null}
-      <div className="mx-auto flex min-h-[calc(100vh-81px)] max-w-6xl items-center px-4 py-10 md:px-8">
-        <div className="grid w-full gap-8 lg:grid-cols-[0.9fr_1.1fr]">
-          <section className="rounded-3xl border border-white/70 bg-brand-primary p-8 text-white shadow-soft">
-            <div className="rounded-2xl bg-white/10 p-3 backdrop-blur">
-              <Logo />
-            </div>
-            <div className="mt-8 space-y-5">
-              <div>
-                <div className="text-xs font-semibold uppercase tracking-[0.38em] text-brand-accent">RangeRates</div>
-                <h1 className="mt-4 text-4xl font-semibold leading-tight">{copy.title}</h1>
-                <p className="mt-4 text-base leading-7 text-white/80">{copy.subtitle}</p>
+      <div className={`mx-auto flex min-h-[calc(100vh-81px)] items-center px-4 py-10 md:px-8 ${mode === "signup" ? "max-w-6xl" : "max-w-2xl"}`}>
+        <div className={`grid w-full gap-8 ${mode === "signup" ? "lg:grid-cols-[0.9fr_1.1fr]" : ""}`}>
+          {mode === "signup" ? (
+            <section className="rounded-3xl border border-white/70 bg-brand-primary p-8 text-white shadow-soft">
+              <div className="rounded-2xl bg-white/10 p-3 backdrop-blur">
+                <Logo />
               </div>
-              <div className="space-y-3 text-sm leading-7 text-white/80">
-                <div className="rounded-2xl border border-white/10 bg-white/10 p-4">Create quotes and save them for later.</div>
-                <div className="rounded-2xl border border-white/10 bg-white/10 p-4">Keep customer details and notes tied to each job.</div>
-                <div className="rounded-2xl border border-white/10 bg-white/10 p-4">Send clear quote and appointment updates from one place.</div>
+              <div className="mt-8 space-y-5">
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.38em] text-brand-accent">RangeRates</div>
+                  <h1 className="mt-4 text-4xl font-semibold leading-tight">{copy.title}</h1>
+                  <p className="mt-4 text-base leading-7 text-white/80">{copy.subtitle}</p>
+                </div>
+                <div className="space-y-3 text-sm leading-7 text-white/80">
+                  <div className="rounded-2xl border border-white/10 bg-white/10 p-4">Create quotes and save them for later.</div>
+                  <div className="rounded-2xl border border-white/10 bg-white/10 p-4">Keep customer details and notes tied to each job.</div>
+                  <div className="rounded-2xl border border-white/10 bg-white/10 p-4">Send clear quote and appointment updates from one place.</div>
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
+          ) : null}
 
           <section className="rounded-3xl border border-white/70 bg-white/92 p-8 shadow-soft">
             <div>
