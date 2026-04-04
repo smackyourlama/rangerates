@@ -38,6 +38,7 @@ export function AuthCard({
   const [role, setRole] = useState<WorkspaceRole>("dispatch");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const googleButtonRef = useRef<HTMLDivElement | null>(null);
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim();
   const [googleScriptReady, setGoogleScriptReady] = useState(false);
@@ -233,16 +234,27 @@ export function AuthCard({
               </label>
               <label className="block text-sm font-medium text-slate-700">
                 Password
-                <input
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  type="password"
-                  autoComplete={mode === "login" ? "current-password" : "new-password"}
-                  placeholder=""
-                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/15"
-                  minLength={8}
-                  required
-                />
+                <div className="relative mt-2">
+                  <input
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    type={showPassword ? "text" : "password"}
+                    autoComplete={mode === "login" ? "current-password" : "new-password"}
+                    placeholder=""
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 pr-20 text-slate-900 outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/15"
+                    minLength={8}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((current) => !current)}
+                    className="absolute inset-y-0 right-3 my-auto h-9 rounded-full px-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 transition hover:bg-slate-100 hover:text-brand-ink"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-pressed={showPassword}
+                  >
+                    {showPassword ? "Hide" : "Show"}
+                  </button>
+                </div>
               </label>
 
               {error ? <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">{error}</div> : null}
@@ -280,6 +292,10 @@ export function AuthCard({
                 Google sign-in becomes available here once <code className="font-mono text-[12px]">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> is configured for this deployment.
               </div>
             )}
+
+            <div className="mt-6 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4 text-sm leading-6 text-slate-600">
+              Server-verified sessions keep login state out of the browser, and messaging credentials stay in the protected server/admin layer.
+            </div>
 
             <div className="mt-6 flex items-center justify-between gap-4 text-sm text-slate-500">
               <Link href="/" className="transition hover:text-brand-ink">

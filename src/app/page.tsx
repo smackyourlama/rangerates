@@ -10,7 +10,7 @@ import { formatCurrency } from "@/lib/workspace";
 const workflowSteps = [
   {
     title: "Log in and open the dashboard",
-    body: "Start from a real workspace, not a dead-end marketing page. The first signed-in screen shows quote volume, customers, and next actions.",
+    body: "Start from a real workspace where dispatch can immediately see quote activity, customer records, and the next action to take.",
   },
   {
     title: "Calculate, save, and send",
@@ -22,6 +22,8 @@ const workflowSteps = [
   },
 ];
 
+const trustSignals = ["Live route miles", "Saved quotes", "Customer history", "Optional Google sign-in"];
+
 const features = [
   "Working login, signup, and optional Google sign-in",
   "Dispatcher dashboard with summary widgets and quick links",
@@ -29,6 +31,29 @@ const features = [
   "Customer records with edit and archive states",
   "Live OpenStreetMap + OSRM quote engine with route preview",
   "Server-backed workspace auth and synced quote/customer data",
+];
+
+const faqs = [
+  {
+    question: "How does RangeRates calculate the delivery fee?",
+    answer:
+      "The app geocodes the route, checks driving distance through OSRM, falls back to straight-line distance if needed, and matches the result to the active pricing tiers.",
+  },
+  {
+    question: "Can dispatch save quotes and reopen them later?",
+    answer:
+      "Yes. Quotes are saved into the workspace so your team can reopen the detail page, update status, add notes, and reuse the summary after the first call.",
+  },
+  {
+    question: "Does the app support Google login?",
+    answer:
+      "Yes, when the deployment has a Google client ID configured. Email/password login works immediately, and Google sign-in can be turned on without redesigning the auth flow.",
+  },
+  {
+    question: "What happens if route lookup fails?",
+    answer:
+      "The calculator falls back gracefully instead of dead-ending, so dispatch still gets a usable quote path and can confirm the final delivery fee after route review.",
+  },
 ];
 
 export default function HomePage() {
@@ -43,10 +68,10 @@ export default function HomePage() {
               Delivery quote workspace
             </div>
             <h1 className="mt-6 text-4xl font-semibold leading-tight text-brand-ink md:text-6xl">
-              RangeRates now flows like a real dispatch app instead of a single calculator screen.
+              Quote faster, save the job, and keep dispatch moving.
             </h1>
             <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-600">
-              Create a workspace, calculate live delivery fees from <span className="font-semibold text-brand-primary">{ORIGIN_ADDRESS}</span>, save each quote, manage customer records, and keep the next action obvious after login.
+              RangeRates turns route-based delivery pricing into a usable dispatch workflow: calculate live fees from <span className="font-semibold text-brand-primary">{ORIGIN_ADDRESS}</span>, save each quote, attach it to the customer, and surface the next step after login.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
@@ -62,13 +87,21 @@ export default function HomePage() {
               ) : (
                 <>
                   <Link href="/signup" className="button-primary">
-                    Create workspace
+                    Start quoting deliveries
                   </Link>
                   <Link href="/login" className="button-secondary">
                     Log in
                   </Link>
                 </>
               )}
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-2">
+              {trustSignals.map((signal) => (
+                <div key={signal} className="rounded-full border border-brand-primary/10 bg-brand-primary/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-brand-primary">
+                  {signal}
+                </div>
+              ))}
             </div>
 
             <div className="mt-8 grid gap-3 md:grid-cols-2">
@@ -132,14 +165,19 @@ export default function HomePage() {
 
         <section className="grid gap-6 lg:grid-cols-[1fr_1fr]">
           <Panel title="Pricing table" description="These are the live tiers used by the calculator and saved quote flow.">
-            <div className="grid gap-4 md:grid-cols-2">
-              {PRICING_TIERS.map((tier) => (
-                <div key={tier.id} className="rounded-2xl border border-brand-primary/10 bg-white p-5">
-                  <div className="text-xs font-semibold uppercase tracking-[0.34em] text-brand-muted">{tier.label}</div>
-                  <div className="mt-3 text-3xl font-semibold text-brand-ink">{formatCurrency(tier.price)}</div>
-                  <div className="mt-2 text-sm text-slate-500">{tier.maxMiles ? `Applies through ${tier.maxMiles} miles.` : "Applies beyond 20 miles."}</div>
-                </div>
-              ))}
+            <div className="space-y-5">
+              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm leading-7 text-slate-600">
+                Quotes are based on route distance from <span className="font-semibold text-brand-ink">{ORIGIN_ADDRESS}</span>, then matched to the active delivery tier. Final pricing can still be confirmed by dispatch if access or route details change.
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                {PRICING_TIERS.map((tier) => (
+                  <div key={tier.id} className="rounded-2xl border border-brand-primary/10 bg-white p-5">
+                    <div className="text-xs font-semibold uppercase tracking-[0.34em] text-brand-muted">{tier.label}</div>
+                    <div className="mt-3 text-3xl font-semibold text-brand-ink">{formatCurrency(tier.price)}</div>
+                    <div className="mt-2 text-sm text-slate-500">{tier.maxMiles ? `Applies through ${tier.maxMiles} miles.` : "Applies beyond 20 miles."}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           </Panel>
 
@@ -179,14 +217,35 @@ export default function HomePage() {
           </Panel>
         </section>
 
-        {!currentUser ? (
-          <EmptyState
-            title="Open the actual product"
-            description="The quote desk, customer list, and dispatch dashboard are already wired up. Create a workspace and go straight into the logged-in flow."
-            actionHref="/signup"
-            actionLabel="Create workspace"
-          />
-        ) : null}
+        <section className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+          <Panel title="Common questions" description="The basics visitors usually want to know before they create a workspace.">
+            <div className="space-y-3">
+              {faqs.map((faq) => (
+                <details key={faq.question} className="rounded-2xl border border-slate-100 bg-white px-5 py-4 group open:border-brand-primary/20 open:bg-brand-primary/5">
+                  <summary className="cursor-pointer list-none text-base font-semibold text-brand-ink">{faq.question}</summary>
+                  <p className="mt-3 text-sm leading-7 text-slate-600">{faq.answer}</p>
+                </details>
+              ))}
+            </div>
+          </Panel>
+
+          {!currentUser ? (
+            <EmptyState
+              title="Open the actual product"
+              description="The quote desk, customer list, and dispatch dashboard are already wired up. Create a workspace and go straight into the logged-in flow."
+              actionHref="/signup"
+              actionLabel="Start quoting deliveries"
+            />
+          ) : (
+            <Panel title="What improves after login" description="Why the product works better once dispatch is inside the workspace.">
+              <div className="space-y-4 text-sm leading-7 text-slate-600">
+                <div className="rounded-2xl border border-slate-100 bg-white p-4">Each quote can be saved, reopened, and updated instead of disappearing after the first calculation.</div>
+                <div className="rounded-2xl border border-slate-100 bg-white p-4">Customer records, notes, and quote history stay attached so the next call starts with context.</div>
+                <div className="rounded-2xl border border-slate-100 bg-white p-4">Status changes like draft, sent, approved, and scheduled give dispatch a clearer handoff flow.</div>
+              </div>
+            </Panel>
+          )}
+        </section>
       </div>
     </SiteFrame>
   );
