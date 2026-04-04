@@ -1,12 +1,14 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   buildQuoteSummary,
   createDefaultSettings,
   createEmptyWorkspaceState,
   createId,
-  normalizeEmail,
+  loadWorkspaceState,
+  persistWorkspaceState,
+  pickPreferredWorkspaceState,
   sanitizeWorkspaceState,
   sortCustomersByNewest,
   sortMessagesByNewest,
@@ -24,6 +26,15 @@ import {
   type WorkspaceState,
   type WorkspaceUser,
 } from "@/lib/workspace";
+import {
+  loadLocalAuthState,
+  loginLocalWorkspaceUser,
+  persistLocalAuthState,
+  signUpLocalWorkspaceUser,
+  updateLocalWorkspacePassword,
+} from "@/lib/local-auth";
+
+type StorageMode = "remote" | "local";
 
 type AppContextValue = {
   ready: boolean;
@@ -56,27 +67,63 @@ function assertUser(user: WorkspaceUser | null): asserts user is WorkspaceUser {
   }
 }
 
+type RequestError = Error & { status?: number };
+
 async function readJson(response: Response) {
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(payload?.error || "Request failed.");
+    const error = new Error(payload?.error || "Request failed.") as RequestError;
+    error.status = response.status;
+    throw error;
   }
   return payload;
+}
+
+function getErrorStatus(error: unknown) {
+  return typeof (error as RequestError | undefined)?.status === "number" ? (error as RequestError).status : undefined;
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Request failed.";
+}
+
+function shouldKeepRemoteErrorForSignup(error: unknown) {
+  const status = getErrorStatus(error);
+  if (status === 400 || status === 409) {
+    return true;
+  }
+
+  const message = getErrorMessage(error);
+  return [
+    "Enter your name first.",
+    "Enter your email first.",
+    "Use at least 8 characters for the password.",
+    "That email already has an account. Log in instead.",
+  ].includes(message);
 }
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<WorkspaceState>(createEmptyWorkspaceState);
   const [ready, setReady] = useState(false);
+  const [storageMode, setStorageMode] = useState<StorageMode>("remote");
+  const stateRef = useRef(state);
+
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   useEffect(() => {
     let cancelled = false;
+    const localState = loadWorkspaceState();
+    setState(localState);
 
     async function hydrateWorkspace() {
       try {
         const response = await fetch("/api/workspace", { cache: "no-store" });
         if (response.status === 401) {
           if (!cancelled) {
-            setState(createEmptyWorkspaceState());
+            setState(localState);
+            setStorageMode(localState.sessionUserId ? "local" : "remote");
             setReady(true);
           }
           return;
@@ -84,12 +131,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         const payload = await readJson(response);
         if (!cancelled) {
-          setState(sanitizeWorkspaceState(payload?.state));
+          setState(pickPreferredWorkspaceState(payload?.state, localState));
+          setStorageMode("remote");
           setReady(true);
         }
       } catch {
         if (!cancelled) {
-          setState(createEmptyWorkspaceState());
+          setState(localState);
+          setStorageMode(localState.sessionUserId ? "local" : "remote");
           setReady(true);
         }
       }
@@ -103,7 +152,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!ready || !state.sessionUserId) {
+    if (ready) {
+      persistWorkspaceState(state);
+    }
+  }, [ready, state]);
+
+  useEffect(() => {
+    if (!ready || !state.sessionUserId || storageMode !== "remote") {
       return;
     }
 
@@ -127,7 +182,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       controller.abort();
       window.clearTimeout(timeout);
     };
-  }, [ready, state]);
+  }, [ready, state, storageMode]);
 
   const currentUser = useMemo(
     () => state.users.find((user) => user.id === state.sessionUserId) ?? null,
@@ -163,26 +218,55 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     quotes,
     messages,
     async signUp(input) {
-      const response = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input),
-      });
-      await readJson(response);
-      const workspaceResponse = await fetch("/api/workspace", { cache: "no-store" });
-      const workspacePayload = await readJson(workspaceResponse);
-      setState(sanitizeWorkspaceState(workspacePayload?.state));
+      try {
+        const response = await fetch("/api/auth/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(input),
+        });
+        await readJson(response);
+        const workspaceResponse = await fetch("/api/workspace", { cache: "no-store" });
+        const workspacePayload = await readJson(workspaceResponse);
+        setState(sanitizeWorkspaceState(workspacePayload?.state));
+        setStorageMode("remote");
+        return;
+      } catch (remoteError) {
+        if (shouldKeepRemoteErrorForSignup(remoteError)) {
+          throw remoteError;
+        }
+      }
+
+      const authState = loadLocalAuthState();
+      const { state: nextState, auth } = await signUpLocalWorkspaceUser(input, stateRef.current, authState);
+      persistLocalAuthState(auth);
+      setState(nextState);
+      setStorageMode("local");
     },
     async login(input) {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input),
-      });
-      await readJson(response);
-      const workspaceResponse = await fetch("/api/workspace", { cache: "no-store" });
-      const workspacePayload = await readJson(workspaceResponse);
-      setState(sanitizeWorkspaceState(workspacePayload?.state));
+      try {
+        const response = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(input),
+        });
+        await readJson(response);
+        const workspaceResponse = await fetch("/api/workspace", { cache: "no-store" });
+        const workspacePayload = await readJson(workspaceResponse);
+        setState(sanitizeWorkspaceState(workspacePayload?.state));
+        setStorageMode("remote");
+        return;
+      } catch (remoteError) {
+        const authState = loadLocalAuthState();
+
+        try {
+          const nextState = await loginLocalWorkspaceUser(input, stateRef.current, authState);
+          setState(nextState);
+          setStorageMode("local");
+          return;
+        } catch {
+          throw remoteError;
+        }
+      }
     },
     async loginWithGoogle(input) {
       const response = await fetch("/api/auth/google", {
@@ -194,13 +278,42 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const workspaceResponse = await fetch("/api/workspace", { cache: "no-store" });
       const workspacePayload = await readJson(workspaceResponse);
       setState(sanitizeWorkspaceState(workspacePayload?.state));
+      setStorageMode("remote");
     },
     async logout() {
-      await fetch("/api/auth/logout", { method: "POST" });
-      setState(createEmptyWorkspaceState());
+      if (storageMode === "remote") {
+        await fetch("/api/auth/logout", { method: "POST" });
+      }
+
+      setState((previous) => ({
+        ...previous,
+        sessionUserId: null,
+      }));
     },
     async updateProfile(patch) {
       assertUser(currentUser);
+
+      if (storageMode === "local") {
+        const nextUser: WorkspaceUser = {
+          ...currentUser,
+          fullName: typeof patch.fullName === "string" && patch.fullName.trim() ? patch.fullName.trim() : currentUser.fullName,
+          companyName: typeof patch.companyName === "string" ? patch.companyName.trim() : currentUser.companyName,
+          role: patch.role ?? currentUser.role,
+        };
+
+        if (typeof patch.password === "string" && patch.password.trim()) {
+          const authState = loadLocalAuthState();
+          const nextAuth = await updateLocalWorkspacePassword(authState, currentUser.id, patch.password);
+          persistLocalAuthState(nextAuth);
+        }
+
+        setState((previous) => ({
+          ...previous,
+          users: previous.users.map((user) => (user.id === currentUser.id ? nextUser : user)),
+        }));
+        return;
+      }
+
       const response = await fetch("/api/auth/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -374,7 +487,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (!currentUser) return undefined;
       return state.quotes.find((quote) => quote.id === quoteId && quote.userId === currentUser.id);
     },
-  }), [currentUser, customers, messages, quotes, ready, settings, state.customers, state.quotes, state.users]);
+  }), [currentUser, customers, messages, quotes, ready, settings, state.customers, state.quotes, state.users, storageMode]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

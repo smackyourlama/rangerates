@@ -24,13 +24,16 @@ The app was rebuilt around the local website template principles:
 
 ## Auth + storage model
 
-This version uses **browser localStorage** for auth and app data so the full website works immediately on Vercel with zero backend setup.
+This version prefers **server-backed JSON storage** when the host can write to `data/rangerates-workspace.json`.
+
+If the deployment target is read-only or otherwise cannot save server files, the app now **falls back to browser localStorage for email/password auth and workspace data** so signup and the core dashboard still work without extra backend setup.
 
 That means:
 
-- accounts are stored per browser/device
-- quotes/customers persist in that browser until cleared
-- the app structure is now ready for a future swap to Supabase/Postgres if multi-device sync is needed
+- writable hosts get shared server-side persistence for the app instance
+- read-only hosts still allow per-browser accounts and saved workspace data
+- quotes/customers persist in that browser until cleared when local fallback is active
+- the app structure is still ready for a future swap to Supabase/Postgres if multi-device sync is needed
 
 ## Core workflow
 
