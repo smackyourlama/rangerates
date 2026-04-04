@@ -178,7 +178,6 @@ export function AuthCard({
             <div>
               <div className="text-xs font-semibold uppercase tracking-[0.38em] text-brand-muted">RangeRates</div>
               <h2 className="mt-3 text-3xl font-semibold text-brand-ink">{copy.title}</h2>
-              <p className="mt-3 text-sm leading-7 text-slate-600">Sign in to your account or create a new one to start using RangeRates.</p>
             </div>
 
             <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
