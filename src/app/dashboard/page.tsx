@@ -31,7 +31,7 @@ export default function DashboardPage() {
   return (
     <DashboardShell
       title="Dispatch dashboard"
-      subtitle="See what needs attention now, what is closest to revenue, and where the next operator move should go."
+      subtitle="Track quotes, customers, and messages from one dashboard."
       actions={
         <>
           <Link href="/dashboard/quotes/new" className="button-primary">
@@ -48,12 +48,12 @@ export default function DashboardPage() {
           <section className="overflow-hidden rounded-[32px] border border-slate-950/90 bg-slate-950 p-6 text-white shadow-soft md:p-8">
             <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
               <div>
-                <div className="text-[11px] font-semibold uppercase tracking-[0.34em] text-white/50">Operator overview</div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.34em] text-white/50">Today</div>
                 <h2 className="mt-3 text-3xl font-semibold">
-                  {currentUser ? `${currentUser.fullName.split(" ")[0]}, keep the board moving.` : "Keep the board moving."}
+                  {currentUser ? `${currentUser.fullName.split(" ")[0]}, here is your dispatch board.` : "Here is your dispatch board."}
                 </h2>
                 <p className="mt-3 max-w-2xl text-sm leading-7 text-white/72">
-                  Quotes, customers, and messages should feel like one live revenue queue. Prioritize sent quotes, scheduled jobs, and follow-up accounts before new admin work.
+                  Review open quotes, follow up with customers, and keep scheduled jobs organized.
                 </p>
 
                 <div className="mt-6 grid gap-3 sm:grid-cols-3">
@@ -76,16 +76,16 @@ export default function DashboardPage() {
                 <div className="text-[11px] font-semibold uppercase tracking-[0.3em] text-white/50">Focus now</div>
                 <div className="mt-4 space-y-3 text-sm">
                   <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                    <div className="font-semibold">Follow up on sent quotes</div>
-                    <div className="mt-1 text-white/65">{sentQuotes} quote(s) are waiting on a customer response.</div>
+                    <div className="font-semibold">Quotes waiting on a reply</div>
+                    <div className="mt-1 text-white/65">{sentQuotes} quote(s) still need a customer response.</div>
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                    <div className="font-semibold">Protect scheduled jobs</div>
-                    <div className="mt-1 text-white/65">{scheduledQuotes} scheduled job(s) should have confirmed date, time, and message trail.</div>
+                    <div className="font-semibold">Scheduled jobs</div>
+                    <div className="mt-1 text-white/65">{scheduledQuotes} scheduled job(s) should have the date, time, and notes confirmed.</div>
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                    <div className="font-semibold">Watch high-touch accounts</div>
-                    <div className="mt-1 text-white/65">{priorityCustomers + followUpCustomers} customer(s) need extra attention.</div>
+                    <div className="font-semibold">Customers needing attention</div>
+                    <div className="mt-1 text-white/65">{priorityCustomers + followUpCustomers} customer(s) are marked priority or follow-up.</div>
                   </div>
                 </div>
               </div>
@@ -93,18 +93,18 @@ export default function DashboardPage() {
           </section>
 
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <MetricTile label="Saved quotes" value={String(quotes.length)} detail="All stored delivery quotes in the workspace." />
-            <MetricTile label="Sent, awaiting reply" value={String(sentQuotes)} detail="Quotes that likely need a follow-up touch." />
-            <MetricTile label="Scheduled jobs" value={String(scheduledQuotes)} detail="Booked work with appointment data attached." />
-            <MetricTile label="Priority accounts" value={String(priorityCustomers)} detail="Customers currently tagged for immediate attention." />
+            <MetricTile label="Saved quotes" value={String(quotes.length)} detail="Quotes currently saved in RangeRates." />
+            <MetricTile label="Sent, awaiting reply" value={String(sentQuotes)} detail="Quotes that still need a customer response." />
+            <MetricTile label="Scheduled jobs" value={String(scheduledQuotes)} detail="Jobs with appointment details already attached." />
+            <MetricTile label="Priority accounts" value={String(priorityCustomers)} detail="Customers marked for immediate attention." />
           </section>
 
           <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-            <Panel title="Quote board" description="The main work queue should feel like a live board, not a buried history list.">
+            <Panel title="Quote board" description="Open any quote to review details and update status.">
               {recentQuotes.length === 0 ? (
                 <EmptyState
                   title="No saved quotes yet"
-                  description="Create the first quote so the dashboard can start showing live pricing, status, and follow-up work."
+                  description="Create the first quote to start tracking pricing, status, and follow-up."
                   actionHref="/dashboard/quotes/new"
                   actionLabel="Create first quote"
                 />
@@ -137,35 +137,35 @@ export default function DashboardPage() {
             </Panel>
 
             <div className="space-y-6">
-              <Panel title="Quick actions" description="Keep the next operator move obvious.">
+              <Panel title="Quick actions" description="Jump straight to the next task.">
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
                   <Link href="/dashboard/quotes/new" className="rounded-[24px] border border-slate-100 bg-white p-4 transition hover:bg-brand-primary/5">
                     <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">Quote desk</div>
                     <div className="mt-2 font-semibold text-brand-ink">Start a new delivery quote</div>
-                    <div className="mt-2 text-sm text-slate-600">Calculate distance, capture customer contact info, and save the quote.</div>
+                    <div className="mt-2 text-sm text-slate-600">Create a price, save the quote, and add job details.</div>
                   </Link>
                   <Link href="/dashboard/customers" className="rounded-[24px] border border-slate-100 bg-white p-4 transition hover:bg-brand-primary/5">
                     <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">Customer queue</div>
                     <div className="mt-2 font-semibold text-brand-ink">Review customers and statuses</div>
-                    <div className="mt-2 text-sm text-slate-600">Update records, check notes, and send follow-up texts.</div>
+                    <div className="mt-2 text-sm text-slate-600">Review contact details, notes, and linked quotes.</div>
                   </Link>
                   <Link href="/dashboard/messages" className="rounded-[24px] border border-slate-100 bg-white p-4 transition hover:bg-brand-primary/5">
                     <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">Message logs</div>
-                    <div className="mt-2 font-semibold text-brand-ink">Inspect outbound SMS history</div>
-                    <div className="mt-2 text-sm text-slate-600">Keep delivery state and customer communication aligned.</div>
+                    <div className="mt-2 font-semibold text-brand-ink">Review sent messages</div>
+                    <div className="mt-2 text-sm text-slate-600">Check recent quote and appointment messages.</div>
                   </Link>
                   <Link href="/dashboard/profile" className="rounded-[24px] border border-slate-100 bg-white p-4 transition hover:bg-brand-primary/5">
                     <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">Settings</div>
-                    <div className="mt-2 font-semibold text-brand-ink">Check base location and Twilio</div>
-                    <div className="mt-2 text-sm text-slate-600">Make sure distance and text workflows stay configured.</div>
+                    <div className="mt-2 font-semibold text-brand-ink">Update account and quote settings</div>
+                    <div className="mt-2 text-sm text-slate-600">Update your account details and starting location for quotes.</div>
                   </Link>
                 </div>
               </Panel>
 
-              <Panel title="Latest message activity" description="Recent customer communication should stay visible without hunting through another page.">
+              <Panel title="Latest message activity" description="Recent customer texts sent from RangeRates.">
                 {recentMessages.length === 0 ? (
                   <div className="rounded-[24px] border border-dashed border-brand-primary/30 bg-brand-primary/5 p-5 text-sm leading-7 text-slate-600">
-                    No messages yet. Send a quote text from a customer page and it will show up here.
+                    No messages yet. Send a quote or appointment update and it will appear here.
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -185,11 +185,11 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <Panel title="Customer activity" description="Recent records stay one click away from quote history and follow-up work.">
+          <Panel title="Customer activity" description="Open any customer to review notes and linked quotes.">
             {recentCustomers.length === 0 ? (
               <EmptyState
                 title="No customers yet"
-                description="Add the first customer so quotes, notes, and route history are tied to a real record instead of floating around in messages."
+                description="Add the first customer so quotes and notes stay tied to the right record."
                 actionHref="/dashboard/customers/new"
                 actionLabel="Add first customer"
               />

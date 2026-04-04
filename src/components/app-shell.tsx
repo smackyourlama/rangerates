@@ -12,7 +12,7 @@ export function Logo() {
       <Image src="/rangerates-logo.svg" alt="RangeRates" width={152} height={42} priority />
       <div>
         <div className="text-xs font-semibold uppercase tracking-[0.35em] text-brand-muted">RangeRates</div>
-        <div className="text-sm text-slate-500">Dispatch workspace</div>
+        <div className="text-sm text-slate-500">Delivery quoting</div>
       </div>
     </Link>
   );
@@ -97,7 +97,7 @@ export function SiteFrame({ children }: { children: ReactNode }) {
                   Log in
                 </Link>
                 <Link href="/signup" className="rounded-full bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110">
-                  Create workspace
+                  Get started
                 </Link>
               </>
             )}
@@ -129,10 +129,10 @@ export function DashboardShell({
           <aside className="hidden xl:block">
             <div className="sticky top-24 space-y-4">
               <section className="rounded-[28px] border border-slate-900/90 bg-slate-950 p-5 text-white shadow-soft">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.34em] text-white/55">Workspace</div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.34em] text-white/55">RangeRates</div>
                 <div className="mt-3 text-2xl font-semibold">{currentUser?.companyName || "RangeRates"}</div>
                 <p className="mt-3 text-sm leading-7 text-white/72">
-                  One operating surface for quotes, customers, messages, and route-based pricing.
+                  Manage quotes, customers, messages, and billing from one place.
                 </p>
               </section>
 
@@ -151,10 +151,10 @@ export function DashboardShell({
               </section>
 
               <section className="rounded-[28px] border border-white/80 bg-white/90 p-5 shadow-soft">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">Operator note</div>
-                <div className="mt-3 text-sm font-semibold text-brand-ink">Work the board top to bottom.</div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">Daily focus</div>
+                <div className="mt-3 text-sm font-semibold text-brand-ink">Keep active quotes moving.</div>
                 <p className="mt-2 text-sm leading-7 text-slate-600">
-                  Keep new quotes moving, follow up on sent ones, and treat messages like a live revenue queue.
+                  Save each quote, follow up with pending customers, and move approved jobs to scheduled.
                 </p>
               </section>
             </div>
@@ -165,7 +165,7 @@ export function DashboardShell({
               <div className="absolute" />
               <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
                 <div>
-                  <div className="text-xs font-semibold uppercase tracking-[0.38em] text-brand-muted">Operations workspace</div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.38em] text-brand-muted">RangeRates</div>
                   <h1 className="mt-3 text-3xl font-semibold text-brand-ink md:text-4xl">{title}</h1>
                   <p className="mt-3 max-w-3xl text-base leading-7 text-slate-600">{subtitle}</p>
                 </div>

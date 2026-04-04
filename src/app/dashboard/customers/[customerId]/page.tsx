@@ -115,7 +115,7 @@ export default function CustomerDetailPage() {
   return (
     <DashboardShell
       title="Customer detail"
-      subtitle="Customer pages now combine editing, quote history, and outbound quote messaging in one place."
+      subtitle="View customer details, linked quotes, and updates in one place."
       actions={
         <>
           <Link href="/dashboard/customers" className="button-secondary">
@@ -131,14 +131,14 @@ export default function CustomerDetailPage() {
         {!customer ? (
           <EmptyState
             title="Customer not found"
-            description="This customer record is not available in the current workspace. Go back to the list and open another record."
+            description="This customer could not be found. Go back to the customer list and open another record."
             actionHref="/dashboard/customers"
             actionLabel="Back to customer list"
           />
         ) : (
           <div className="grid gap-6 xl:grid-cols-[1fr_0.95fr]">
             <div className="space-y-6">
-              <Panel title={customer.name} description="Edit the record directly here instead of bouncing to a separate settings page.">
+              <Panel title={customer.name} description="Update contact details, address, status, and notes for this customer.">
                 <div className="grid gap-4 md:grid-cols-2">
                   <label className="block text-sm font-medium text-slate-700">
                     Name
@@ -181,7 +181,7 @@ export default function CustomerDetailPage() {
                 </div>
               </Panel>
 
-              <Panel title="Send client text" description="Send a quote / appointment text using the secured server-side Twilio configuration.">
+              <Panel title="Send client text" description="Send a quote or appointment update to this customer.">
                 <div className="grid gap-4 md:grid-cols-2">
                   <label className="block text-sm font-medium text-slate-700 md:col-span-2">
                     Linked quote
@@ -227,11 +227,11 @@ export default function CustomerDetailPage() {
             </div>
 
             <div className="space-y-6">
-              <Panel title="Related quote history" description="Connected flow matters: customer record to quote history should be one click, not a scavenger hunt.">
+              <Panel title="Related quote history" description="Open any saved quote linked to this customer.">
                 {relatedQuotes.length === 0 ? (
                   <EmptyState
                     title="No linked quotes yet"
-                    description="Create the next quote from the quote desk and link it to this customer so the history starts here."
+                    description="Create the next quote for this customer and it will appear here."
                     actionHref="/dashboard/quotes/new"
                     actionLabel="Create linked quote"
                   />
@@ -250,7 +250,7 @@ export default function CustomerDetailPage() {
                 )}
               </Panel>
 
-              <Panel title="Next actions" description="Every detail page should tell the operator what they can do next.">
+              <Panel title="Next actions" description="Jump to the next task for this customer.">
                 <div className="space-y-3">
                   <Link href="/dashboard/quotes/new" className="block rounded-2xl border border-slate-100 bg-white p-4 transition hover:bg-brand-primary/5">
                     <div className="text-sm text-slate-500">Quote desk</div>

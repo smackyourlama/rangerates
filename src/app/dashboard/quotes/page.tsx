@@ -27,7 +27,7 @@ export default function QuotesPage() {
   return (
     <DashboardShell
       title="Saved quotes"
-      subtitle="Search every saved quote, filter by status, and open the detail page to continue the workflow instead of recalculating from scratch."
+      subtitle="Search, filter, and reopen saved quotes."
       actions={
         <Link href="/dashboard/quotes/new" className="button-primary">
           New quote
@@ -36,7 +36,7 @@ export default function QuotesPage() {
     >
       <RequireAuth next="/dashboard/quotes">
         <div className="space-y-6">
-          <Panel title="Search and filter" description="List view, filters, and a clear next action when nothing is here yet.">
+          <Panel title="Search and filter" description="Find a quote by customer, address, notes, route type, or status.">
             <div className="grid gap-4 md:grid-cols-[1fr_220px]">
               <input
                 value={search}
@@ -55,18 +55,18 @@ export default function QuotesPage() {
             </div>
           </Panel>
 
-          <Panel title={`Quote list (${filteredQuotes.length})`} description="Every row leads to a real detail page with status changes, notes, route preview, and copy actions.">
+          <Panel title={`Quote list (${filteredQuotes.length})`} description="Open any quote to review details and update status.">
             {quotes.length === 0 ? (
               <EmptyState
                 title="No quotes saved yet"
-                description="Start with the quote desk. Calculate a destination, save it, then manage it like a real dispatch record."
+                description="Create the first quote to start tracking prices, job details, and status."
                 actionHref="/dashboard/quotes/new"
                 actionLabel="Create first quote"
               />
             ) : filteredQuotes.length === 0 ? (
               <EmptyState
                 title="No quotes match this filter"
-                description="Try a different status or search term. The list is live-filtered so you can quickly find a customer or route."
+                description="Try a different status or search term to find the quote you need."
                 actionHref="/dashboard/quotes"
                 actionLabel="Reset filters"
               />

@@ -42,7 +42,7 @@ export default function QuoteDetailPage() {
   return (
     <DashboardShell
       title="Quote detail"
-      subtitle="Edit status, route metadata, appointment details, and notes from one place."
+      subtitle="Review the quote, update details, and keep the job moving."
       actions={
         <>
           <Link href="/dashboard/quotes" className="button-secondary">
@@ -58,14 +58,14 @@ export default function QuoteDetailPage() {
         {!quote ? (
           <EmptyState
             title="Quote not found"
-            description="This quote may have been removed from browser storage or belongs to a different workspace session. Go back to the quote list and open another one."
+            description="This quote could not be found. Go back to the quote list and open another one."
             actionHref="/dashboard/quotes"
             actionLabel="Back to quote list"
           />
         ) : (
           <div className="grid gap-6 xl:grid-cols-[1fr_0.95fr]">
             <div className="space-y-6">
-              <Panel title={quote.destinationAddress} description="This page keeps the original calculator result visible while you handle the next step.">
+              <Panel title={quote.destinationAddress} description="Review the saved quote details before you update the job.">
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="rounded-2xl border border-slate-100 bg-white p-4">
                     <div className="text-sm text-slate-500">Customer</div>
@@ -94,7 +94,7 @@ export default function QuoteDetailPage() {
                 </div>
               </Panel>
 
-              <Panel title="Edit workflow state" description="Change status, urgency, client contact info, and notes without leaving the quote page.">
+              <Panel title="Edit quote details" description="Update status, schedule details, customer phone number, and notes.">
                 <div className="grid gap-4 md:grid-cols-2">
                   <label className="block text-sm font-medium text-slate-700">
                     Status
@@ -144,7 +144,7 @@ export default function QuoteDetailPage() {
             </div>
 
             <div className="space-y-6">
-              <Panel title="Route preview" description="The original calculator output stays attached to the saved quote.">
+              <Panel title="Route preview" description="Review the route and copy the quote summary.">
                 <div className="space-y-4">
                   <MapPreview origin={quote.originCoordinates} destination={quote.destinationCoordinates} />
                   <div className="rounded-2xl border border-brand-primary/20 bg-brand-primary/5 p-4 text-sm leading-7 text-brand-ink">
@@ -156,7 +156,7 @@ export default function QuoteDetailPage() {
                 </div>
               </Panel>
 
-              <Panel title="What to do next" description="No dead end after you save the quote.">
+              <Panel title="Next actions" description="Jump to the next step for this quote.">
                 <div className="space-y-3">
                   <Link href="/dashboard/messages" className="block rounded-2xl border border-slate-100 bg-white p-4 transition hover:bg-brand-primary/5">
                     <div className="text-sm text-slate-500">Messages</div>
@@ -180,7 +180,7 @@ export default function QuoteDetailPage() {
                 </div>
               </Panel>
 
-              <Panel title="Recent quotes" description="Shortcut back into nearby records.">
+              <Panel title="Recent quotes" description="Open another saved quote.">
                 {recentQuotes.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-brand-primary/30 bg-brand-primary/5 p-5 text-sm text-slate-600">This is the only quote saved so far.</div>
                 ) : (

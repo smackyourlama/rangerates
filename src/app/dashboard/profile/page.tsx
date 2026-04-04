@@ -31,11 +31,11 @@ export default function ProfilePage() {
   }
 
   return (
-    <DashboardShell title="Settings" subtitle="Edit workspace identity and base location without exposing secrets to the browser.">
+    <DashboardShell title="Settings" subtitle="Update your account details and your default starting location for quotes.">
       <RequireAuth next="/dashboard/profile">
         {!currentUser ? null : (
           <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
-            <Panel title="Workspace settings" description="Everything needed to run quoting lives here. Messaging credentials now stay in the server-side admin layer.">
+            <Panel title="Account settings" description="Keep your account and quote settings up to date.">
               <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
                 <label className="block text-sm font-medium text-slate-700">
                   Full name
@@ -59,32 +59,32 @@ export default function ProfilePage() {
                   </select>
                 </label>
                 <label className="block text-sm font-medium text-slate-700 md:col-span-2">
-                  Replace password
+                  New password
                   <input name="password" type="password" minLength={8} placeholder="" className="input-base mt-2" />
                 </label>
                 <label className="block text-sm font-medium text-slate-700 md:col-span-2">
-                  Base location for distance calculations
+                  Starting location for quotes
                   <input name="baseLocation" defaultValue={settings?.baseLocation || ""} placeholder="" className="input-base mt-2" />
                 </label>
 
                 {message ? <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900 md:col-span-2">{message}</div> : null}
 
                 <div className="md:col-span-2 flex flex-wrap gap-3">
-                  <button type="submit" className="button-primary">Save settings</button>
+                  <button type="submit" className="button-primary">Save changes</button>
                 </div>
               </form>
             </Panel>
 
-            <Panel title="Security notes" description="What changed in this hardening pass.">
+            <Panel title="How these settings are used" description="Update the details that affect everyday quoting.">
               <div className="space-y-4 text-sm leading-7 text-slate-600">
                 <div className="rounded-2xl border border-slate-100 bg-white p-4">
-                  Workspace data now syncs to a server-side JSON store without exposing password hashes or admin messaging secrets to the browser.
+                  Your company name appears throughout the app and in customer-facing quote messages.
                 </div>
                 <div className="rounded-2xl border border-slate-100 bg-white p-4">
-                  Google sign-in works when `NEXT_PUBLIC_GOOGLE_CLIENT_ID` is configured, and the credential is verified on the server before login completes.
+                  Your starting location is used as the default origin for distance calculations.
                 </div>
                 <div className="rounded-2xl border border-slate-100 bg-white p-4">
-                  Twilio credentials now live only in <span className="font-semibold text-brand-ink">/admin</span>. Regular users can send messages, but they cannot read or overwrite the underlying secrets from the client.
+                  Update your password here whenever you want to change account access.
                 </div>
               </div>
             </Panel>

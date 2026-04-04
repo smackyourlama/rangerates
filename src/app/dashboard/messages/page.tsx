@@ -9,9 +9,9 @@ export default function MessagesPage() {
   const { messages, customers, quotes } = useApp();
 
   return (
-    <DashboardShell title="Messages" subtitle="See outbound SMS history, delivery state, and the quote or customer each message came from.">
+    <DashboardShell title="Messages" subtitle="Review quote and appointment texts sent to customers.">
       <RequireAuth next="/dashboard/messages">
-        <Panel title={`Message log (${messages.length})`} description="Outbound quote and appointment messages stay visible here.">
+        <Panel title={`Message log (${messages.length})`} description="Recent messages sent from RangeRates.">
           {messages.length === 0 ? (
             <EmptyState
               title="No messages sent yet"
@@ -37,7 +37,7 @@ export default function MessagesPage() {
                     <div className="mt-3 flex flex-wrap gap-4 text-xs uppercase tracking-[0.22em] text-brand-muted">
                       <span>{formatDateTime(message.createdAt)}</span>
                       {quote ? <span>Quote linked</span> : null}
-                      {message.providerMessageSid ? <span>Twilio SID {message.providerMessageSid}</span> : null}
+                      {message.providerMessageSid ? <span>Message ID {message.providerMessageSid}</span> : null}
                     </div>
                   </div>
                 );

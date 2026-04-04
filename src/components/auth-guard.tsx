@@ -18,7 +18,7 @@ export function RequireAuth({ next, children }: { next: string; children: React.
   if (!ready) {
     return (
       <div className="rounded-3xl border border-white/70 bg-white/88 p-8 text-sm text-slate-600 shadow-soft">
-        Loading your RangeRates workspace…
+        Loading RangeRates…
       </div>
     );
   }
@@ -29,7 +29,7 @@ export function RequireAuth({ next, children }: { next: string; children: React.
         <div className="font-semibold">You need to sign in to open this page.</div>
         <div className="mt-2">You are being redirected now. If nothing happens, use the button below.</div>
         <Link href={`/login?next=${encodeURIComponent(next)}`} className="mt-4 inline-flex rounded-full bg-brand-primary px-5 py-3 font-semibold text-white">
-          Go to login
+          Go to sign in
         </Link>
       </div>
     );

@@ -32,9 +32,9 @@ export default function NewCustomerPage() {
   }
 
   return (
-    <DashboardShell title="Add customer" subtitle="Create the customer record first, then connect quotes and route notes to it from the rest of the workflow.">
+    <DashboardShell title="Add customer" subtitle="Add a customer so quotes and notes stay tied to the right account.">
       <RequireAuth next="/dashboard/customers/new">
-        <Panel title="Customer form" description="Every empty state should lead here or to the quote desk.">
+        <Panel title="Customer form" description="Save contact details for repeat jobs and follow-up.">
           <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
             <label className="block text-sm font-medium text-slate-700">
               Customer name
@@ -67,7 +67,7 @@ export default function NewCustomerPage() {
             </label>
             <label className="block text-sm font-medium text-slate-700 md:col-span-2">
               Notes
-              <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={5} className="input-base mt-2 min-h-[140px] resize-y" placeholder="Gate code, preferred delivery window, or internal notes" />
+              <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={5} className="input-base mt-2 min-h-[140px] resize-y" placeholder="Access info, job notes, or preferred contact details" />
             </label>
 
             {error ? <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900 md:col-span-2">{error}</div> : null}

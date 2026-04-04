@@ -99,17 +99,17 @@ export function AuthCard({
   const copy = useMemo(() => {
     if (mode === "signup") {
       return {
-        title: "Create the RangeRates workspace",
-        subtitle: "Start with login, customer records, saved quotes, and a dispatch dashboard that actually leads somewhere.",
-        submitLabel: "Create workspace",
-        swapLabel: "Already have an account? Log in",
+        title: "Create your RangeRates account",
+        subtitle: "Save quotes, manage customers, and keep delivery updates in one place.",
+        submitLabel: "Create account",
+        swapLabel: "Already have an account? Sign in",
         swapHref: `/login?next=${encodeURIComponent(resolvedNextPath)}`,
       };
     }
 
     return {
-      title: "Log in to RangeRates",
-      subtitle: "Open your quote desk, customer history, and operations dashboard.",
+      title: "Sign in to RangeRates",
+      subtitle: "Open your quotes, customers, messages, and settings.",
       submitLabel: "Log in",
       swapLabel: "Need an account? Create one",
       swapHref: `/signup?next=${encodeURIComponent(resolvedNextPath)}`,
@@ -160,23 +160,23 @@ export function AuthCard({
             </div>
             <div className="mt-8 space-y-5">
               <div>
-                <div className="text-xs font-semibold uppercase tracking-[0.38em] text-brand-accent">Dispatch workflow first</div>
+                <div className="text-xs font-semibold uppercase tracking-[0.38em] text-brand-accent">RangeRates</div>
                 <h1 className="mt-4 text-4xl font-semibold leading-tight">{copy.title}</h1>
                 <p className="mt-4 text-base leading-7 text-white/80">{copy.subtitle}</p>
               </div>
               <div className="space-y-3 text-sm leading-7 text-white/80">
-                <div className="rounded-2xl border border-white/10 bg-white/10 p-4">Save quotes after calculation instead of losing them after one page refresh.</div>
-                <div className="rounded-2xl border border-white/10 bg-white/10 p-4">Keep customer records and route notes connected to each job.</div>
-                <div className="rounded-2xl border border-white/10 bg-white/10 p-4">Give dispatch a dashboard, history view, and next-action flow from the first login.</div>
+                <div className="rounded-2xl border border-white/10 bg-white/10 p-4">Create quotes and save them for later.</div>
+                <div className="rounded-2xl border border-white/10 bg-white/10 p-4">Keep customer details and notes tied to each job.</div>
+                <div className="rounded-2xl border border-white/10 bg-white/10 p-4">Send clear quote and appointment updates from one place.</div>
               </div>
             </div>
           </section>
 
           <section className="rounded-3xl border border-white/70 bg-white/92 p-8 shadow-soft">
             <div>
-              <div className="text-xs font-semibold uppercase tracking-[0.38em] text-brand-muted">Workspace access</div>
+              <div className="text-xs font-semibold uppercase tracking-[0.38em] text-brand-muted">RangeRates</div>
               <h2 className="mt-3 text-3xl font-semibold text-brand-ink">{copy.title}</h2>
-              <p className="mt-3 text-sm leading-7 text-slate-600">This version keeps authentication and sensitive messaging credentials on the server, with optional Google sign-in when a Google client ID is configured.</p>
+              <p className="mt-3 text-sm leading-7 text-slate-600">Sign in to your account or create a new one to start using RangeRates.</p>
             </div>
 
             <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
@@ -277,10 +277,10 @@ export function AuthCard({
                 </div>
 
                 <div className="space-y-3">
-                  <div className="text-center text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Continue with Google</div>
+                  <div className="text-center text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Sign in with Google</div>
                   {googleScriptFailed ? (
                     <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                      Google sign-in is enabled, but the Google script could not load in this browser. Refresh and try again, or use email and password for now.
+                      Google sign-in could not load. Refresh and try again, or use email and password.
                     </div>
                   ) : (
                     <div ref={googleButtonRef} className="flex min-h-[44px] justify-center" />
@@ -289,12 +289,12 @@ export function AuthCard({
               </>
             ) : (
               <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
-                Google sign-in becomes available here once <code className="font-mono text-[12px]">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> is configured for this deployment.
+                Use your email and password to continue.
               </div>
             )}
 
             <div className="mt-6 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4 text-sm leading-6 text-slate-600">
-              Server-verified sessions keep login state out of the browser, and messaging credentials stay in the protected server/admin layer.
+              Create quotes, update customer records, and review message history in one place.
             </div>
 
             <div className="mt-6 flex items-center justify-between gap-4 text-sm text-slate-500">

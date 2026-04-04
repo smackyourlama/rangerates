@@ -27,7 +27,7 @@ export default function CustomersPage() {
   return (
     <DashboardShell
       title="Customers"
-      subtitle="Customer detail pages now anchor quote history, notes, status updates, and the next dispatch action."
+      subtitle="Keep customer details, notes, and linked quotes in one place."
       actions={
         <Link href="/dashboard/customers/new" className="button-primary">
           Add customer
@@ -36,7 +36,7 @@ export default function CustomersPage() {
     >
       <RequireAuth next="/dashboard/customers">
         <div className="space-y-6">
-          <Panel title="Search and filter" description="List view plus empty states that point to a real next step.">
+          <Panel title="Search and filter" description="Find a customer by name, company, phone, email, notes, or status.">
             <div className="grid gap-4 md:grid-cols-[1fr_220px]">
               <input
                 value={search}
@@ -54,11 +54,11 @@ export default function CustomersPage() {
             </div>
           </Panel>
 
-          <Panel title={`Customer list (${filteredCustomers.length})`} description="Open a customer to edit fields, review related quotes, and archive old records safely.">
+          <Panel title={`Customer list (${filteredCustomers.length})`} description="Open a customer to review details, notes, and linked quotes.">
             {customers.length === 0 ? (
               <EmptyState
                 title="No customers yet"
-                description="Create the first customer record so quote history and dispatch notes have a real home."
+                description="Create the first customer record to start saving contact details and linked quotes."
                 actionHref="/dashboard/customers/new"
                 actionLabel="Add first customer"
               />

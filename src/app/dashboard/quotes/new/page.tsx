@@ -120,11 +120,11 @@ export default function NewQuotePage() {
   return (
     <DashboardShell
       title="Create quote"
-      subtitle="Calculate the route, preview the map, save the quote, and keep enough contact detail to message the client later."
+      subtitle="Calculate a quote, review the route, and save the job details."
     >
       <RequireAuth next="/dashboard/quotes/new">
         <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-          <Panel title="Quote inputs" description="This is the creation flow for saved delivery quotes.">
+          <Panel title="Quote inputs" description="Enter the job details and generate a delivery quote.">
             <form className="space-y-4" onSubmit={handleCalculate}>
               <label className="block text-sm font-medium text-slate-700">
                 Existing customer
@@ -204,7 +204,7 @@ export default function NewQuotePage() {
             </form>
           </Panel>
 
-          <Panel title="Quote preview" description="The preview shows the exact output before you save it to the detail page.">
+          <Panel title="Quote preview" description="Review the quote before you save it.">
             {quote ? (
               <div className="space-y-5">
                 <div className="grid gap-3 rounded-2xl border border-slate-100 bg-white p-5 text-sm text-slate-600">

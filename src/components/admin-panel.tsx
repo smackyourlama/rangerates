@@ -256,7 +256,7 @@ export function AdminPanel() {
       <div className="mx-auto max-w-xl rounded-[32px] border border-white/80 bg-white/92 p-8 shadow-soft">
         <div className="text-[11px] font-semibold uppercase tracking-[0.34em] text-brand-muted">Admin login</div>
         <h1 className="mt-3 text-3xl font-semibold text-brand-ink">RangeRates admin panel</h1>
-        <p className="mt-3 text-sm leading-7 text-slate-600">Sign in with the admin account to manage users, subscriptions, analytics, Twilio, and Stripe configuration. Workspace passwords stay hashed server-side and are never exposed back to this screen.</p>
+        <p className="mt-3 text-sm leading-7 text-slate-600">Sign in to manage users, subscriptions, analytics, messaging, and billing settings for RangeRates.</p>
         {session?.lockoutUntil ? <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">Login protection is active until {new Date(session.lockoutUntil).toLocaleString()}.</div> : null}
         <form className="mt-6 space-y-4" onSubmit={handleLogin}>
           <label className="block text-sm font-medium text-slate-700">
