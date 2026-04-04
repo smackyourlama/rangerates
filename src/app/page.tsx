@@ -24,15 +24,6 @@ const workflowSteps = [
 
 const trustSignals = ["Live route miles", "Saved quotes", "Customer history", "Message tracking"];
 
-const features = [
-  "Fast delivery quotes from your starting location",
-  "Saved quotes with status updates",
-  "Customer records with notes and contact info",
-  "Route preview on every quote",
-  "Quote and appointment message log",
-  "Simple pricing tiers for dispatch",
-];
-
 const faqs = [
   {
     question: "How does RangeRates calculate the delivery fee?",
@@ -104,13 +95,6 @@ export default function HomePage() {
               ))}
             </div>
 
-            <div className="mt-8 grid gap-3 md:grid-cols-2">
-              {features.map((feature) => (
-                <div key={feature} className="rounded-2xl border border-slate-100 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm">
-                  {feature}
-                </div>
-              ))}
-            </div>
           </div>
 
           <div className="space-y-6">
