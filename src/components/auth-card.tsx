@@ -36,6 +36,7 @@ export function AuthCard({
   const [fullName, setFullName] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [role, setRole] = useState<WorkspaceRole>("dispatch");
+  const [unlockSignupIdentityFields, setUnlockSignupIdentityFields] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -180,21 +181,30 @@ export function AuthCard({
               <h2 className="mt-3 text-3xl font-semibold text-brand-ink">{copy.title}</h2>
             </div>
 
-            <form className="mt-8 space-y-4" onSubmit={handleSubmit} autoComplete={mode === "signup" ? "off" : "on"}>
+            <form className="mt-8 space-y-4" onSubmit={handleSubmit} autoComplete={mode === "signup" ? "off" : "on"} data-form-type={mode === "signup" ? "other" : undefined}>
               {mode === "signup" ? (
                 <>
+                  <div className="hidden" aria-hidden="true">
+                    <input type="text" name="fake_username" autoComplete="username" tabIndex={-1} readOnly />
+                    <input type="password" name="fake_password" autoComplete="new-password" tabIndex={-1} readOnly />
+                  </div>
                   <label className="block text-sm font-medium text-slate-700">
                     Full name
                     <input
                       value={fullName}
                       onChange={(event) => setFullName(event.target.value)}
+                      onFocus={() => setUnlockSignupIdentityFields(true)}
+                      onPointerDown={() => setUnlockSignupIdentityFields(true)}
                       type="text"
-                      autoComplete="off"
+                      name="rr_full_name"
+                      autoComplete="new-password"
                       autoCorrect="off"
                       autoCapitalize="words"
                       spellCheck={false}
                       data-1p-ignore="true"
                       data-lpignore="true"
+                      data-bwignore="true"
+                      readOnly={!unlockSignupIdentityFields}
                       placeholder="Nico Rodriguez"
                       className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/15"
                       required
@@ -205,12 +215,17 @@ export function AuthCard({
                     <input
                       value={companyName}
                       onChange={(event) => setCompanyName(event.target.value)}
+                      onFocus={() => setUnlockSignupIdentityFields(true)}
+                      onPointerDown={() => setUnlockSignupIdentityFields(true)}
                       type="text"
-                      autoComplete="off"
+                      name="rr_company_name"
+                      autoComplete="new-password"
                       autoCorrect="off"
                       spellCheck={false}
                       data-1p-ignore="true"
                       data-lpignore="true"
+                      data-bwignore="true"
+                      readOnly={!unlockSignupIdentityFields}
                       placeholder=""
                       className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/15"
                     />
@@ -220,9 +235,13 @@ export function AuthCard({
                     <select
                       value={role}
                       onChange={(event) => setRole(event.target.value as WorkspaceRole)}
+                      onFocus={() => setUnlockSignupIdentityFields(true)}
+                      onPointerDown={() => setUnlockSignupIdentityFields(true)}
+                      name="rr_primary_role"
                       autoComplete="off"
                       data-1p-ignore="true"
                       data-lpignore="true"
+                      data-bwignore="true"
                       className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/15"
                     >
                       {roleOptions.map((option) => (
