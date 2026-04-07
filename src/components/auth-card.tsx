@@ -180,7 +180,7 @@ export function AuthCard({
               <h2 className="mt-3 text-3xl font-semibold text-brand-ink">{copy.title}</h2>
             </div>
 
-            <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
+            <form className="mt-8 space-y-4" onSubmit={handleSubmit} autoComplete={mode === "signup" ? "off" : "on"}>
               {mode === "signup" ? (
                 <>
                   <label className="block text-sm font-medium text-slate-700">
@@ -189,6 +189,12 @@ export function AuthCard({
                       value={fullName}
                       onChange={(event) => setFullName(event.target.value)}
                       type="text"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="words"
+                      spellCheck={false}
+                      data-1p-ignore="true"
+                      data-lpignore="true"
                       placeholder="Nico Rodriguez"
                       className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/15"
                       required
@@ -200,6 +206,11 @@ export function AuthCard({
                       value={companyName}
                       onChange={(event) => setCompanyName(event.target.value)}
                       type="text"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      data-1p-ignore="true"
+                      data-lpignore="true"
                       placeholder=""
                       className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/15"
                     />
@@ -209,6 +220,9 @@ export function AuthCard({
                     <select
                       value={role}
                       onChange={(event) => setRole(event.target.value as WorkspaceRole)}
+                      autoComplete="off"
+                      data-1p-ignore="true"
+                      data-lpignore="true"
                       className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/15"
                     >
                       {roleOptions.map((option) => (
